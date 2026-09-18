@@ -15,8 +15,8 @@ export default function HomePage() {
           NexusAI
         </h1>
         <p className="nexus-hero-description">
-          A unified environment for tracing people, cases, evidence, and verified
-          relationships across complex investigations and international criminal networks.
+          A unified environment for tracing criminals, cases, evidence, and verified
+          relationships across complex investigations and cross-border criminal networks.
         </p>
         <Link className="nexus-hero-cta" href="/login">
           Enter workspace
