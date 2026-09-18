@@ -291,28 +291,30 @@ git commit -m "feat: implement authorized FIR workflow"
 **Interfaces:**
 - Produces: `PersonRepository.findProfileForActor` and `getPersonProfile(actor, personId)` returning identity, aliases, authorized case roles, evidence summaries, and graph focus ID.
 
-- [ ] **Step 1: Write failing profile authorization and tab tests**
+- [x] **Step 1: Write failing profile authorization and tab tests**
 
 Assert that unauthorized cases are omitted and the Identity, Cases, Associates, Communications, Financial Activity, Assets, Locations, Evidence, and Relationships tabs remain keyboard-operable.
 
-- [ ] **Step 2: Verify tests fail**
+- [x] **Step 2: Verify tests fail**
 
 Run: `pnpm vitest run src/server/services/person-service.test.ts src/features/people/profile-tabs.test.tsx`
 
-- [ ] **Step 3: Implement profile projection and tabbed UI**
+- [x] **Step 3: Implement profile projection and tabbed UI**
 
 Load a single shared person record, join only actor-visible records, and render explicit empty states for future-domain tabs rather than invented metrics.
 
-- [ ] **Step 4: Verify profile behavior**
+- [x] **Step 4: Verify profile behavior**
 
 Run: `pnpm vitest run src/server/services/person-service.test.ts src/features/people/profile-tabs.test.tsx && pnpm typecheck`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/domain/person.ts src/server/repositories src/server/services/person-service.ts 'src/app/(protected)/people' src/features/people
 git commit -m "feat: add consolidated investigation profiles"
 ```
+
+Implemented with the approved scope plus the required case-participation mutation: Department Users and Administrators can associate an already-authorized canonical person with an authorized case, while Investigators remain read-only. The case and profile screens link to each other, and the repository omits unauthorized case participation and evidence summaries. Verification passed with 15 unit/component tests, 7 PostgreSQL integration tests, ESLint, TypeScript, and the production webpack build. The default Turbopack build remains blocked by this execution host's internal CSS-worker port restriction.
 
 ### Task 6: Evidence Attachment and Authenticated Retrieval
 

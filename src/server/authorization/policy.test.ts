@@ -43,6 +43,8 @@ describe("authorization policy", () => {
 
   it("allows department users to create cases only for their department", () => {
     expect(can(departmentActor, "CASE_CREATE")).toBe(true);
+    expect(can(departmentActor, "PERSON_ASSOCIATE")).toBe(true);
+    expect(can(investigatorActor, "PERSON_ASSOCIATE")).toBe(false);
     expect(canAccessDepartment(departmentActor, departmentActor.departmentId)).toBe(true);
     expect(canAccessDepartment(departmentActor, "another-department")).toBe(false);
   });

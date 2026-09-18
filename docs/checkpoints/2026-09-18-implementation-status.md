@@ -37,3 +37,14 @@
 - Corrected the unit-test script's integration exclude quoting after multiple integration files exposed shell glob expansion.
 - ESLint, TypeScript, 11 unit/component tests, 4 PostgreSQL integration tests, and the production webpack build pass.
 - Next implementation phase: Task 5, consolidated person profiles.
+
+## 2026-09-18 — Task 5 complete
+
+- Added canonical person-profile projections with identity details, aliases, actor-visible case roles, evidence summaries, and graph focus identifiers.
+- Added server-side department scoping that returns no profile for people without an authorized case and filters every case/evidence join independently.
+- Added audited case participation for suspect, victim, witness, complainant, and investigator roles; Department Users and Administrators can associate profiles while Investigators remain read-only.
+- Case records list linked people and reopen the canonical profile; profiles link back to each authorized case.
+- Added all nine planned keyboard-operable profile sections, rendering real current-slice data for Identity, Cases, and Evidence and explicit deferred empty states for future domains.
+- The installed 21st design context guided the compact dark UI. No authenticated `21st` executable or component catalog configuration was available, so implementation used existing project components and a local accessibility/responsive review.
+- ESLint, TypeScript, 15 unit/component tests, 7 PostgreSQL integration tests, and the production webpack build pass. The default Turbopack build remains blocked by the host's internal CSS-worker port restriction.
+- Next implementation phase: Task 6, evidence attachment and authenticated retrieval.

@@ -376,7 +376,8 @@ textarea {
   color: var(--text-muted);
 }
 
-.field-group input {
+.field-group input,
+.field-group select {
   width: 100%;
   min-height: 3rem;
   padding: 0.75rem 0.85rem;
@@ -386,11 +387,13 @@ textarea {
   color: var(--text);
 }
 
-.field-group input:hover {
+.field-group input:hover,
+.field-group select:hover {
   border-color: #49617e;
 }
 
-.field-group input[aria-invalid="true"] {
+.field-group input[aria-invalid="true"],
+.field-group select[aria-invalid="true"] {
   border-color: var(--danger);
 }
 
@@ -400,6 +403,16 @@ textarea {
   color: #f5a2a7;
   font-size: 0.76rem;
   line-height: 1.45;
+}
+
+.form-success {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgb(75 210 160 / 38%);
+  border-radius: var(--radius-sm);
+  background: rgb(75 210 160 / 7%);
+  color: var(--success);
+  font-size: 0.76rem;
 }
 
 .form-error {
@@ -871,6 +884,189 @@ textarea {
   margin-top: 0.65rem;
   font-size: 2rem;
   font-weight: 600;
+}
+
+.panel-kicker,
+.optional-label,
+.muted-copy {
+  color: var(--text-muted);
+}
+
+.panel-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.record-count {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}
+
+.person-list,
+.evidence-summary-list {
+  display: grid;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.person-list li,
+.evidence-summary-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.person-list a,
+.evidence-summary-list strong {
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.person-list a:hover {
+  color: var(--accent);
+}
+
+.person-list p,
+.evidence-summary-list span:not(.status-badge) {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.evidence-summary-list span:not(.status-badge) {
+  display: block;
+}
+
+.association-disclosure {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+}
+
+.association-disclosure summary {
+  padding: 0.85rem 1rem;
+  color: #dce5f0;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.association-disclosure[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.compact-form {
+  padding: 1.25rem;
+}
+
+.optional-label {
+  margin-left: 0.35rem;
+  font-weight: 400;
+}
+
+.muted-copy {
+  margin: 1rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2rem);
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-monogram {
+  display: grid;
+  width: clamp(4rem, 8vw, 6rem);
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  letter-spacing: 0.08em;
+}
+
+.profile-header h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 4vw, 4.2rem);
+  font-weight: 620;
+  letter-spacing: -0.055em;
+}
+
+.profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem 1rem;
+  margin-top: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.profile-sections {
+  min-width: 0;
+}
+
+.profile-tab-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.profile-tabs {
+  display: flex;
+  min-width: max-content;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-tabs button {
+  min-height: 2.9rem;
+  padding: 0.7rem 0.85rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.profile-tabs button:hover {
+  color: var(--text);
+}
+
+.profile-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.profile-tab-panel {
+  min-height: 18rem;
+  padding-top: 1.5rem;
+}
+
+.profile-facts {
+  padding: 0 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
 }
 
 .state-panel {

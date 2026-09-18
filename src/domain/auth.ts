@@ -3,6 +3,7 @@ import type { UserRole } from "./model";
 export const capabilities = [
   "CASE_VIEW",
   "CASE_CREATE",
+  "PERSON_ASSOCIATE",
   "EVIDENCE_ATTACH",
   "RELATIONSHIP_SUGGEST",
   "RELATIONSHIP_VERIFY",

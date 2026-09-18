@@ -16,6 +16,7 @@ const roleCapabilities: Readonly<Record<UserRole, ReadonlySet<Capability>>> = {
   [UserRole.DepartmentUser]: new Set([
     "CASE_VIEW",
     "CASE_CREATE",
+    "PERSON_ASSOCIATE",
     "EVIDENCE_ATTACH",
     "RELATIONSHIP_SUGGEST",
   ]),
