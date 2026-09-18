@@ -47,7 +47,10 @@ export function NetworkExplorer({ initialGraph, initialLayoutItems }: NetworkExp
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [focusMode, setFocusMode] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const [fitVersion, setFitVersion] = useState(0);
+  const [recenterVersion, setRecenterVersion] = useState(0);
 
   const selectedNode = useMemo(
     () => graph.nodes.find((node) => node.id === selectedNodeId) ?? graph.focusEntity,
@@ -70,6 +73,7 @@ export function NetworkExplorer({ initialGraph, initialLayoutItems }: NetworkExp
       setSelectedNodeId(nextGraph.focusEntity.id);
       setSelectedEdgeId(null);
       setDetail(null);
+      setFocusMode(false);
       setFitVersion((value) => value + 1);
     } catch {
       setError("The graph could not be loaded. Try again without changing your authorized access scope.");
@@ -102,7 +106,8 @@ export function NetworkExplorer({ initialGraph, initialLayoutItems }: NetworkExp
     setSelectedEdgeId(null);
     setDetail(null);
     setDetailError(null);
-  }, []);
+    setFocusMode(entityId !== graph.focusEntity.id);
+  }, [graph.focusEntity.id]);
 
   const onEdgeSelect = useCallback(async (relationshipId: string) => {
     setSelectedEdgeId(relationshipId);
@@ -120,8 +125,18 @@ export function NetworkExplorer({ initialGraph, initialLayoutItems }: NetworkExp
     }
   }, []);
 
+  const selectedContext = useMemo(() => {
+    const connected = graph.edges.filter((edge) => edge.sourceId === selectedNode.id || edge.targetId === selectedNode.id);
+    const summaries = graph.provenanceSummaries.filter((summary) => connected.some((edge) => edge.id === summary.relationshipId));
+    return {
+      relationshipCount: connected.length,
+      relatedCaseCount: new Set(summaries.flatMap((summary) => summary.sourceCaseIds)).size,
+      evidenceCount: summaries.reduce((count, summary) => count + summary.sourceCount, 0),
+    };
+  }, [graph.edges, graph.provenanceSummaries, selectedNode.id]);
+
   const widgets = [
-    { id: "entity-details", content: <EntityDetails entity={selectedNode} isFocus={selectedNode.id === graph.focusEntity.id} onExplore={() => void requestGraph(selectedNode.id)} /> },
+    { id: "entity-details", content: <EntityDetails entity={selectedNode} isFocus={selectedNode.id === graph.focusEntity.id} context={selectedContext} onExplore={() => void requestGraph(selectedNode.id)} /> },
     { id: "connection-details", content: <ConnectionDetails detail={detail} loading={detailLoading} error={detailError} /> },
     { id: "supporting-evidence", content: <SupportingEvidence detail={detail} /> },
   ];
@@ -143,18 +158,22 @@ export function NetworkExplorer({ initialGraph, initialLayoutItems }: NetworkExp
         </div>
         <div className="network-toolbar-actions">
           <button type="button" onClick={() => setFitVersion((value) => value + 1)}>Fit graph</button>
-          <button type="button" onClick={() => { setSelectedNodeId(graph.focusEntity.id); setSelectedEdgeId(null); setDetail(null); setFitVersion((value) => value + 1); }}>Reset view</button>
+          <button type="button" onClick={() => setRecenterVersion((value) => value + 1)}>Recenter</button>
+          <button type="button" onClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); setDetail(null); setFocusMode(false); }}>Clear focus</button>
+          <button type="button" aria-expanded={legendOpen} aria-label={legendOpen ? "Hide graph legend" : "Show graph legend"} onClick={() => setLegendOpen((open) => !open)}>Legend</button>
         </div>
       </section>
+
+      {legendOpen ? <GraphLegend /> : null}
 
       {error ? <p className="network-alert" role="alert">{error}</p> : null}
       <section className="network-investigation-canvas" aria-busy={loading}>
         <div className="network-canvas-header">
-          <div><span className="eyebrow">Focus entity</span><strong>{graph.focusEntity.displayLabel}</strong><span>{titleCase(graph.focusEntity.entityType)} · {hops} hop{hops > 1 ? "s" : ""}</span></div>
-          <div className="network-legend" aria-label="Graph legend"><span><i className="legend-person" /> Person</span><span><i className="legend-vehicle" /> Vehicle / record</span><span><i className="legend-line" /> Primary</span><span><i className="legend-dotted" /> Pending / unverified</span></div>
+          <div><span className="eyebrow">Focus entity</span><strong>{graph.focusEntity.displayLabel}</strong><span>{titleCase(graph.focusEntity.entityType)} · {hops} hop{hops > 1 ? "s" : ""}{focusMode ? " · neighborhood focus" : ""}</span></div>
+          <p className="network-canvas-instruction">Hover markers for concise context. Select a marker to investigate its neighborhood.</p>
         </div>
         {loading ? <div className="network-loading">Refreshing authorized graph…</div> : null}
-        {graph.edges.length === 0 ? <div className="network-empty"><strong>No authorized relationships match these filters.</strong><span>Enable another verified state, relationship tier, or hop depth to widen this bounded view.</span></div> : <NetworkCanvas focusEntityId={graph.focusEntity.id} nodes={graph.nodes} edges={graph.edges} selectedNodeId={selectedNodeId} selectedEdgeId={selectedEdgeId} fitVersion={fitVersion} onNodeSelect={onNodeSelect} onEdgeSelect={onEdgeSelect} />}
+        {graph.edges.length === 0 ? <div className="network-empty"><strong>No authorized relationships match these filters.</strong><span>Enable another verified state, relationship tier, or hop depth to widen this bounded view.</span></div> : <NetworkCanvas focusEntityId={graph.focusEntity.id} nodes={graph.nodes} edges={graph.edges} selectedNodeId={selectedNodeId} selectedEdgeId={selectedEdgeId} focusMode={focusMode} fitVersion={fitVersion} recenterVersion={recenterVersion} onNodeSelect={onNodeSelect} onEdgeSelect={onEdgeSelect} />}
       </section>
 
       <div className="network-edge-list" aria-label="Keyboard accessible graph connections">
@@ -165,15 +184,21 @@ export function NetworkExplorer({ initialGraph, initialLayoutItems }: NetworkExp
   );
 }
 
-function EntityDetails({ entity, isFocus, onExplore }: { entity: SerializedGraphNeighborhood["nodes"][number]; isFocus: boolean; onExplore: () => void }) {
-  return <article className="workspace-widget-panel"><header><p className="eyebrow">{isFocus ? "Current focus" : "Selected entity"}</p><h2>{entity.displayLabel}</h2></header><dl className="workspace-facts"><div><dt>Entity type</dt><dd>{titleCase(entity.entityType)}</dd></div><div><dt>Verification</dt><dd>{titleCase(entity.verificationState)}</dd></div></dl>{entity.canonicalRecord ? <Link className="secondary-button" href={entity.canonicalRecord.type === "PERSON" ? `/people/${entity.canonicalRecord.id}` : `/cases/${entity.canonicalRecord.id}`}>Open {entity.canonicalRecord.type.toLowerCase()} profile</Link> : null}{!isFocus ? <button type="button" className="primary-button" onClick={onExplore}>Explore from this entity</button> : <p className="workspace-widget-muted">This entity is the bounded traversal origin.</p>}</article>;
+function EntityDetails({ entity, isFocus, context, onExplore }: { entity: SerializedGraphNeighborhood["nodes"][number]; isFocus: boolean; context: { relationshipCount: number; relatedCaseCount: number; evidenceCount: number }; onExplore: () => void }) {
+  return <article className="workspace-widget-panel"><header><p className="eyebrow">{isFocus ? "Current focus" : "Selected entity"}</p><h2>{entity.displayLabel}</h2></header><dl className="workspace-facts"><div><dt>Entity type</dt><dd>{titleCase(entity.entityType)}</dd></div><div><dt>Verification</dt><dd>{titleCase(entity.verificationState)}</dd></div><div><dt>Visible relationships</dt><dd>{context.relationshipCount}</dd></div><div><dt>Related cases</dt><dd>{context.relatedCaseCount}</dd></div><div><dt>Supporting evidence</dt><dd>{context.evidenceCount}</dd></div></dl>{entity.canonicalRecord ? <Link className="secondary-button" href={entity.canonicalRecord.type === "PERSON" ? `/people/${entity.canonicalRecord.id}` : `/cases/${entity.canonicalRecord.id}`}>Open {entity.canonicalRecord.type.toLowerCase()} profile</Link> : null}{!isFocus ? <button type="button" className="primary-button" onClick={onExplore}>Explore from this entity</button> : <p className="workspace-widget-muted">This entity is the bounded traversal origin.</p>}</article>;
 }
 
 function ConnectionDetails({ detail, loading, error }: { detail: SerializedRelationshipDetail | null; loading: boolean; error: string | null }) {
   if (loading) return <article className="workspace-widget-panel"><p className="workspace-widget-muted">Loading authorized connection details…</p></article>;
   if (error) return <article className="workspace-widget-panel"><p role="alert" className="network-alert">{error}</p></article>;
   if (!detail) return <article className="workspace-widget-panel"><header><p className="eyebrow">Connection details</p><h2>Select a connection</h2></header><p className="workspace-widget-muted">Choose an edge to see its source, verification state, timing, and provenance.</p></article>;
-  return <article className="workspace-widget-panel"><header><p className="eyebrow">Connection details</p><h2>{titleCase(detail.relationshipType)}</h2></header><p className="network-why">Why this connection exists</p><dl className="workspace-facts"><div><dt>Path</dt><dd>{detail.sourceEntity.displayLabel} → {detail.targetEntity.displayLabel}</dd></div><div><dt>Strength</dt><dd>{titleCase(detail.strength)}</dd></div><div><dt>Evidence confidence</dt><dd>{titleCase(detail.evidenceConfidence)}</dd></div><div><dt>Verification</dt><dd>{titleCase(detail.verificationState)}</dd></div><div><dt>Interactions</dt><dd>{detail.interactionCount}</dd></div><div><dt>Created by</dt><dd>{detail.createdByName}</dd></div></dl></article>;
+  const relatedCases = [...new Set(detail.provenance.map((source) => source.sourceFirNumber))];
+  const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(value)) : "Not recorded";
+  return <article className="workspace-widget-panel"><header><p className="eyebrow">Connection details</p><h2>{titleCase(detail.relationshipType)}</h2></header><p className="network-why">Why this connection exists</p><dl className="workspace-facts"><div><dt>Path</dt><dd>{detail.sourceEntity.displayLabel} → {detail.targetEntity.displayLabel}</dd></div><div><dt>Strength</dt><dd>{titleCase(detail.strength)}</dd></div><div><dt>Evidence confidence</dt><dd>{titleCase(detail.evidenceConfidence)}</dd></div><div><dt>Verification</dt><dd>{titleCase(detail.verificationState)}</dd></div><div><dt>Interactions</dt><dd>{detail.interactionCount}</dd></div><div><dt>First observed</dt><dd>{formatDate(detail.firstObservedAt)}</dd></div><div><dt>Latest observed</dt><dd>{formatDate(detail.latestObservedAt)}</dd></div><div><dt>Related cases</dt><dd>{relatedCases.join(", ") || "No associated case"}</dd></div><div><dt>Created by</dt><dd>{detail.createdByName}</dd></div>{detail.verifiedByName ? <div><dt>Verified by</dt><dd>{detail.verifiedByName}</dd></div> : null}</dl></article>;
+}
+
+function GraphLegend() {
+  return <aside className="network-legend-popover" aria-label="Graph legend"><div><p className="eyebrow">Node types</p><span><i className="legend-person" /> Person</span><span><i className="legend-case" /> Case</span><span><i className="legend-device" /> Device / phone</span><span><i className="legend-account" /> Account / organization</span></div><div><p className="eyebrow">Relationships</p><span><i className="legend-line" /> Primary</span><span><i className="legend-secondary" /> Secondary</span><span><i className="legend-tertiary" /> Tertiary</span><span><i className="legend-dotted" /> Pending or unverified</span></div></aside>;
 }
 
 function SupportingEvidence({ detail }: { detail: SerializedRelationshipDetail | null }) {

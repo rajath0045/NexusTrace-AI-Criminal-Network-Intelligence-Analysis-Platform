@@ -96,3 +96,12 @@
 - Added loading, filtered-empty, request-error, and unavailable-graph states while retaining server-side RBAC and department scope as the sole source of graph authorization.
 - `pnpm lint`, `pnpm typecheck`, 63 unit/component tests, 22 PostgreSQL integration tests, and `pnpm exec next build --webpack` pass.
 - Next recommended phase: Incidents + Timeline, followed by the AI Investigation capabilities.
+
+## 2026-09-19 — Network graph visual and interaction enhancement complete
+
+- Retained the Task 7/8 Cytoscape presenter, bounded server traversal, authentication, RBAC, department scope, and evidence/provenance contracts without backend changes.
+- Redesigned the authorized graph canvas with compact marker-style circular nodes, inline SVG entity glyphs, a controlled blue hierarchy, focus-node prominence, subtle investigation-grid background, and stable breadth-first spacing.
+- Added concise node and connection hover cards, semantic label thresholds, distinct primary/secondary/tertiary edge treatment, exact verification-state edge treatment, stronger selected markers/edges, and edge-neighborhood emphasis.
+- Added selectable neighborhood focus mode with graduated level 0–3 prominence, Clear Focus, Recenter, compact collapsible legend, and expanded authorized node/connection summaries while keeping detailed evidence in the existing panels.
+- Updated focused component coverage for marker tooltip content, semantic labels, node selection, edge selection, focus mode, Clear Focus, legend behavior, and preserved server-filter controls.
+- ESLint, TypeScript, 68 unit/component tests, 22 PostgreSQL integration tests, and the webpack production build pass.

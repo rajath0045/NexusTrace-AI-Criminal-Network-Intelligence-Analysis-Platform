@@ -5,8 +5,9 @@ import { EvidenceConfidence, GraphEntityType, RelationshipStrength, Verification
 import { NetworkExplorer } from "./network-explorer";
 
 vi.mock("./network-canvas", () => ({
-  NetworkCanvas: ({ onNodeSelect, onEdgeSelect }: { onNodeSelect: (id: string) => void; onEdgeSelect: (id: string) => void }) => (
+  NetworkCanvas: ({ onNodeSelect, onEdgeSelect, focusMode }: { onNodeSelect: (id: string) => void; onEdgeSelect: (id: string) => void; focusMode: boolean }) => (
     <div aria-label="Investigation graph">
+      <output data-testid="focus-mode">{String(focusMode)}</output>
       <button type="button" onClick={() => onNodeSelect("vehicle")}>Select vehicle</button>
       <button type="button" onClick={() => onEdgeSelect("edge-1")}>Select association</button>
     </div>
@@ -88,6 +89,30 @@ describe("NetworkExplorer", () => {
     await user.click(screen.getByRole("button", { name: "Select association" }));
     expect(await screen.findByText("Why this connection exists")).toBeVisible();
     expect(screen.getByRole("link", { name: "Open call-log.csv" })).toHaveAttribute("href", "/api/evidence/evidence-1");
+  });
+
+  it("enters neighborhood focus mode after node selection and clears it without changing server filters", async () => {
+    const user = userEvent.setup();
+    render(<NetworkExplorer initialGraph={graph} initialLayoutItems={[]} />);
+
+    await user.click(screen.getByRole("button", { name: "Select vehicle" }));
+    expect(screen.getByTestId("focus-mode")).toHaveTextContent("true");
+    expect(screen.getByRole("button", { name: "Clear focus" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Clear focus" }));
+    expect(screen.getByTestId("focus-mode")).toHaveTextContent("false");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps the marker legend compact until explicitly opened", async () => {
+    const user = userEvent.setup();
+    render(<NetworkExplorer initialGraph={graph} initialLayoutItems={[]} />);
+
+    expect(screen.queryByText("Node types")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show graph legend" }));
+    expect(screen.getByText("Node types")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Hide graph legend" }));
+    expect(screen.queryByText("Node types")).not.toBeInTheDocument();
   });
 
   it("explains an empty filtered graph and a failed graph request", async () => {
