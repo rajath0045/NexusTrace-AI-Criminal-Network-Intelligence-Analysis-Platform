@@ -116,3 +116,31 @@ export enum FinancialTransactionType {
   Payment = "PAYMENT",
   Other = "OTHER",
 }
+
+export enum FindingReviewStatus {
+  Unreviewed = "UNREVIEWED",
+  UnderReview = "UNDER_REVIEW",
+  Acknowledged = "ACKNOWLEDGED",
+  NeedsMoreEvidence = "NEEDS_MORE_EVIDENCE",
+  Dismissed = "DISMISSED",
+  Escalated = "ESCALATED",
+}
+
+export enum FindingDispositionReason {
+  RelevantToCase = "RELEVANT_TO_CASE",
+  SupportsExistingLead = "SUPPORTS_EXISTING_LEAD",
+  RequiresFollowUp = "REQUIRES_FOLLOW_UP",
+  InsufficientHistory = "INSUFFICIENT_HISTORY",
+  WeakProvenance = "WEAK_PROVENANCE",
+  MissingSourceRecord = "MISSING_SOURCE_RECORD",
+  RequiresDepartmentInput = "REQUIRES_DEPARTMENT_INPUT",
+  ExpectedBehavior = "EXPECTED_BEHAVIOR",
+  DuplicateFinding = "DUPLICATE_FINDING",
+  DataQualityIssue = "DATA_QUALITY_ISSUE",
+  FalsePositive = "FALSE_POSITIVE",
+  NotRelevantToCase = "NOT_RELEVANT_TO_CASE",
+  CrossCaseRelevance = "CROSS_CASE_RELEVANCE",
+  CrossDepartmentRelevance = "CROSS_DEPARTMENT_RELEVANCE",
+  RequiresSupervisorReview = "REQUIRES_SUPERVISOR_REVIEW",
+  RequiresAdminCrossVerification = "REQUIRES_ADMIN_CROSS_VERIFICATION",
+}

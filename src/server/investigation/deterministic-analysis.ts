@@ -1,6 +1,6 @@
 import type { InvestigationAnalysis, InvestigationFinding, InvestigationMetric } from "@/domain/investigation";
 import type { TimelineItem } from "@/domain/incident";
-import { IncidentVerificationLevel } from "@/domain/model";
+import { FindingReviewStatus, IncidentVerificationLevel } from "@/domain/model";
 import type { InvestigationActivityRecord, InvestigationContextData } from "@/server/repositories/investigation-repository";
 
 const day = 86_400_000;
@@ -28,7 +28,7 @@ function evidence(records: Array<{ sourceEvidenceId: string | null; verification
 }
 
 function lead(category: InvestigationFinding["category"], id: string, title: string, detail: string, records: Array<{ id: string; sourceEvidenceId: string | null; verificationLevel: string }>): InvestigationFinding {
-  return { id, category, title, detail, status: notice, supportingRecordIds: records.map((record) => record.id), evidence: evidence(records), verificationLevels: levels(records) };
+  return { id, category, title, detail, status: notice, supportingRecordIds: records.map((record) => record.id), evidence: evidence(records), verificationLevels: levels(records), reviewStatus: FindingReviewStatus.Unreviewed };
 }
 
 function counterpart(record: InvestigationActivityRecord, personEntityIds: string[]) {
@@ -86,7 +86,7 @@ export function buildDeterministicAnalysis(data: InvestigationContextData, befor
   const networkMetrics: InvestigationMetric[] = [
     { label: "Observed relationship changes", value: String(newRelationships.length), detail: "Existing graph relationships first/last observed in the selected window." },
   ];
-  if (newRelationships.length) findings.push({ id: "network-change", category: "NETWORK", title: "Network relationship observed in selected window", detail: `${newRelationships.map((record) => record.relationshipType).join(", ")} is represented by the authorized graph data in this time window. Relationship presence does not establish criminal involvement.`, status: notice, supportingRecordIds: newRelationships.map((record) => record.id), evidence: newRelationships.flatMap((record) => record.evidenceIds.map((id) => ({ id, verificationLevel: record.verificationLevel as IncidentVerificationLevel }))), verificationLevels: levels(newRelationships) });
+  if (newRelationships.length) findings.push({ id: "network-change", category: "NETWORK", title: "Network relationship observed in selected window", detail: `${newRelationships.map((record) => record.relationshipType).join(", ")} is represented by the authorized graph data in this time window. Relationship presence does not establish criminal involvement.`, status: notice, supportingRecordIds: newRelationships.map((record) => record.id), evidence: newRelationships.flatMap((record) => record.evidenceIds.map((id) => ({ id, verificationLevel: record.verificationLevel as IncidentVerificationLevel }))), verificationLevels: levels(newRelationships), reviewStatus: FindingReviewStatus.Unreviewed });
 
   const casesByCounterpart = new Map<string, { label: string; caseIds: Set<string>; records: InvestigationActivityRecord[] }>();
   for (const record of data.activities) {

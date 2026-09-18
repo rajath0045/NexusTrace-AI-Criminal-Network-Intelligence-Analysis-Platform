@@ -125,6 +125,34 @@ enum FinancialTransactionType {
   OTHER
 }
 
+enum FindingReviewStatus {
+  UNREVIEWED
+  UNDER_REVIEW
+  ACKNOWLEDGED
+  NEEDS_MORE_EVIDENCE
+  DISMISSED
+  ESCALATED
+}
+
+enum FindingDispositionReason {
+  RELEVANT_TO_CASE
+  SUPPORTS_EXISTING_LEAD
+  REQUIRES_FOLLOW_UP
+  INSUFFICIENT_HISTORY
+  WEAK_PROVENANCE
+  MISSING_SOURCE_RECORD
+  REQUIRES_DEPARTMENT_INPUT
+  EXPECTED_BEHAVIOR
+  DUPLICATE_FINDING
+  DATA_QUALITY_ISSUE
+  FALSE_POSITIVE
+  NOT_RELEVANT_TO_CASE
+  CROSS_CASE_RELEVANCE
+  CROSS_DEPARTMENT_RELEVANCE
+  REQUIRES_SUPERVISOR_REVIEW
+  REQUIRES_ADMIN_CROSS_VERIFICATION
+}
+
 model Department {
   id            String              @id @default(uuid()) @db.Uuid
   code          String              @unique
@@ -138,6 +166,8 @@ model Department {
   auditEvents   AuditEvent[]
   communications CommunicationRecord[]
   financialTransactions FinancialTransaction[]
+  investigationFindings InvestigationFinding[]
+  findingReviews FindingReview[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 }
@@ -158,6 +188,7 @@ model User {
   verifiedRelationships GraphRelationship[]   @relation("RelationshipVerifier")
   auditEvents           AuditEvent[]
   workspaceLayouts      UserWorkspaceLayout[]
+  findingReviews        FindingReview[]          @relation("FindingReviewer")
   submittedIncidents    Incident[]              @relation("IncidentSubmitter")
   departmentVerifiedIncidents Incident[]         @relation("IncidentDepartmentVerifier")
   crossVerifiedIncidents Incident[]              @relation("IncidentCrossVerifier")
@@ -216,6 +247,7 @@ model Case {
   incidents              Incident[]
   communications         CommunicationRecord[]
   financialTransactions  FinancialTransaction[]
+  investigationFindings  InvestigationFinding[]
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
@@ -235,6 +267,7 @@ model Person {
   cases        CasePerson[]
   graphEntity  GraphEntity?
   incidents    IncidentParticipant[]
+  investigationFindings InvestigationFinding[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -342,6 +375,7 @@ model Incident {
   graphEntity              GraphEntity?
   communications           CommunicationRecord[]
   financialTransactions    FinancialTransaction[]
+  investigationFindings    InvestigationFinding[]
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
 
@@ -493,6 +527,55 @@ model FinancialTransaction {
   @@index([incidentId, occurredAt])
   @@index([sourceEntityId, occurredAt])
   @@index([destinationEntityId, occurredAt])
+}
+
+model InvestigationFinding {
+  id                   String              @id @default(uuid()) @db.Uuid
+  findingKey           String              @unique
+  category             String
+  title                String
+  detail               String
+  personId             String              @db.Uuid
+  person               Person              @relation(fields: [personId], references: [id], onDelete: Restrict)
+  incidentId           String              @db.Uuid
+  incident             Incident            @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  caseId               String?             @db.Uuid
+  case                 Case?               @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  departmentId         String              @db.Uuid
+  department           Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  windowStart          DateTime
+  windowEnd            DateTime
+  generatedAt          DateTime            @default(now())
+  supportingRecordIds  Json
+  evidenceIds          Json
+  verificationLevels   Json
+  reviewStatus         FindingReviewStatus @default(UNREVIEWED)
+  reviews              FindingReview[]
+  updatedAt            DateTime            @updatedAt
+
+  @@index([departmentId, reviewStatus, generatedAt])
+  @@index([personId, generatedAt])
+  @@index([incidentId, generatedAt])
+  @@index([caseId, generatedAt])
+}
+
+model FindingReview {
+  id                   String                   @id @default(uuid()) @db.Uuid
+  findingId            String                   @db.Uuid
+  finding              InvestigationFinding    @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  reviewerUserId       String                   @db.Uuid
+  reviewer             User                     @relation("FindingReviewer", fields: [reviewerUserId], references: [id], onDelete: Restrict)
+  reviewerDepartmentId String                   @db.Uuid
+  reviewerDepartment   Department               @relation(fields: [reviewerDepartmentId], references: [id], onDelete: Restrict)
+  previousStatus       FindingReviewStatus
+  status               FindingReviewStatus
+  reasonCode           FindingDispositionReason
+  note                 String?
+  createdAt            DateTime                 @default(now())
+
+  @@index([findingId, createdAt])
+  @@index([reviewerUserId, createdAt])
+  @@index([reviewerDepartmentId, createdAt])
 }
 
 model AuditEvent {

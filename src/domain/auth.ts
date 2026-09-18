@@ -13,6 +13,7 @@ export const capabilities = [
   "INCIDENT_CROSS_VERIFY",
   "ACTIVITY_CREATE",
   "INVESTIGATION_ANALYZE",
+  "FINDING_REVIEW",
   "ADMINISTER",
 ] as const;
 

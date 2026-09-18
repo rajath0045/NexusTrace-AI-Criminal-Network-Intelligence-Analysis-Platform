@@ -124,3 +124,11 @@
 - Added idempotent synthetic raw records rather than frontend fixtures: normal calls followed by a 12-call incident-window spike, a shared-device cross-case context, normal ₹10–25k transfers, and a ₹480k transfer. Record-level verification and protected evidence links stay visible to reviewers.
 - Added activity validation/service authorization tests, deterministic-analysis tests, timeline filter coverage, workspace isolation coverage, UI workspace/copilot tests, and PostgreSQL persistence assertions. `pnpm lint`, `pnpm typecheck`, 83 unit/component tests, 28 PostgreSQL integration tests, Prisma migration status, and `pnpm exec next build --webpack` pass. The default Turbopack build is still blocked by this host’s internal CSS-worker port restriction even outside the sandbox; webpack production compilation is clean.
 - Next recommended phase: operator-reviewed finding disposition and human feedback workflow before considering any external-model integration.
+
+## 2026-09-19 — Task 11 human finding review complete
+
+- Added a separate human-review lifecycle for persisted deterministic investigation findings: `UNREVIEWED`, `UNDER_REVIEW`, `ACKNOWLEDGED`, `NEEDS_MORE_EVIDENCE`, `DISMISSED`, and `ESCALATED`. These states remain distinct from evidence, incident, relationship, and case verification.
+- Added immutable structured review events with reviewer identity, department, prior/effective state, reason code, optional note, timestamp, and an AuditEvent transaction. Existing reviews are never overwritten; the current effective state is projected on the finding.
+- Added department-scoped queue and explicit authenticated review APIs. Investigators and Department Users can disposition only authorized findings; Administrators retain authorized cross-department visibility. No review mutation can mark a lead as verified intelligence.
+- Extended the investigation workspace with effective review-state badges and explicit acknowledge, more-evidence, dismiss, and escalate actions. The controlled copilot remains read-only and now describes current human review state in its deterministic response.
+- Prisma schema validation/migration status, ESLint, TypeScript, 83 unit/component tests, 28 PostgreSQL integration tests, and the webpack production build pass.
