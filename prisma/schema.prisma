@@ -223,6 +223,7 @@ model GraphRelationship {
   strength           RelationshipStrength
   evidenceConfidence EvidenceConfidence
   verificationState  VerificationState      @default(PENDING)
+  interactionCount   Int                    @default(0)
   interactionSummary String?
   startsAt           DateTime?
   endsAt             DateTime?
@@ -242,6 +243,7 @@ model GraphRelationship {
   @@index([departmentId])
   @@index([createdById])
   @@index([verifiedById])
+  @@unique([sourceEntityId, targetEntityId, relationshipType])
 }
 
 model RelationshipEvidence {

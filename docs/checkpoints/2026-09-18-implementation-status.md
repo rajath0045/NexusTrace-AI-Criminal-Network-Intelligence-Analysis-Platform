@@ -60,3 +60,16 @@
 - Added 10 focused file-safety/service/component/route tests and 2 repository integration tests; the complete suite now passes 25 unit/component tests and 9 PostgreSQL integration tests.
 - ESLint, TypeScript, and the production webpack build pass. The default Turbopack build still reaches CSS processing but cannot bind its internal worker port on this host.
 - Next implementation phase: Task 7, evidence-backed graph domain, traversal, and relationship verification.
+
+## 2026-09-18 — Task 7 complete
+
+- Added framework-independent graph contracts for authorized entity lookup, bounded neighborhoods, connection detail, provenance, proposals, verified creation, and administrative review.
+- Added presentation-safe graph entity, edge, neighborhood, source, and relationship-detail projections without duplicating canonical Person, Case, or Evidence data.
+- Added bounded PostgreSQL traversal for one, two, or three hops with strength and verification filters, per-layer limits, and duplicate node/edge protection.
+- Graph queries return no root, edge, count, metadata, or provenance when department scope denies access; service identifiers are validated before repository access.
+- Added relationship invariants for self edges, duplicate directed semantic edges, same-department endpoints, exact evidence/case provenance, verifier identity, verification timestamp, and at least one source for verified intelligence.
+- Investigators and Department Users can submit pending intelligence; only Administrators can create or approve verified relationships. Strength remains independent from evidence confidence and verification state.
+- Relationship proposals, verified creation, verification, rejection, and changes-requested reviews write audit events in the same transaction as graph mutations.
+- Extended the deterministic synthetic seed to 11 graph entities and 5 relationships covering primary, secondary, tertiary, verified, and pending intelligence with observation timestamps and interaction counts.
+- ESLint, TypeScript, 33 unit tests, 20 PostgreSQL integration tests, and the production webpack build pass.
+- Next implementation phase: Task 8, focused Cytoscape network exploration and connection details.

@@ -44,7 +44,7 @@ describe("PostgreSQL investigation persistence", () => {
         users.map((user) => verify(user.passwordHash, "NexusTraceDemo!2026")),
       ),
     ).toEqual([true, true, true]);
-    expect(relationships).toHaveLength(2);
+    expect(relationships).toHaveLength(4);
     expect(relationships.every((relationship) => relationship.evidence.length > 0)).toBe(
       true,
     );

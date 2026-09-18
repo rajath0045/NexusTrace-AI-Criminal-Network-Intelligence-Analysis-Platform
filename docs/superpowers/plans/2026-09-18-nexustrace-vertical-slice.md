@@ -384,7 +384,7 @@ Implemented with an allowlisted 10 MB upload boundary, normalized display filena
 - Produces: `getNeighborhood(actor, rootId, { hops, strengths, verificationStates })` and `getRelationshipDetail(actor, relationshipId)`.
 - Produces: `createVerifiedRelationship(actor, input)` requiring Administrator capability and at least one authorized evidence source.
 
-- [ ] **Step 1: Write failing graph-contract tests**
+- [x] **Step 1: Write failing graph-contract tests**
 
 ```ts
 it("returns only verified primary one-hop edges by default", async () => {
@@ -400,28 +400,30 @@ it("returns only verified primary one-hop edges by default", async () => {
 
 Also prove that unauthorized nodes cannot be inferred through edge results and that relationship verification fails without evidence, verifier identity, or verification timestamp.
 
-- [ ] **Step 2: Verify tests fail**
+- [x] **Step 2: Verify tests fail**
 
 Run: `pnpm vitest run src/server/graph src/server/services/relationship-service.test.ts tests/integration/graph-repository.test.ts`
 
-- [ ] **Step 3: Implement the repository contract and PostgreSQL adapter**
+- [x] **Step 3: Implement the repository contract and PostgreSQL adapter**
 
 Load authorized edges in bounded layers, deduplicate nodes and edges, stop at the requested depth, preserve source summaries, and cap the result size. Keep Prisma types inside the adapter.
 
-- [ ] **Step 4: Implement verified relationship creation**
+- [x] **Step 4: Implement verified relationship creation**
 
 Validate graph entity visibility, evidence visibility, strength/confidence separation, provenance, and Administrator permission; persist relationship, evidence joins, and audit event in one transaction.
 
-- [ ] **Step 5: Verify graph behavior**
+- [x] **Step 5: Verify graph behavior**
 
 Run: `pnpm vitest run src/server/graph src/server/services/relationship-service.test.ts tests/integration/graph-repository.test.ts`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/domain/graph.ts src/server/graph src/server/services/relationship-service.ts src/server/services/graph-service.ts 'src/app/(protected)/relationships' tests/integration/graph-repository.test.ts
 git commit -m "feat: add evidence-backed graph domain"
 ```
+
+Implemented with presentation-safe entity/edge/source/detail projections, independently filtered strength and verification state, bounded one-to-three-hop PostgreSQL traversal, canonical Person/Case references, same-department endpoint and provenance validation, pending proposals, Administrator verification/rejection/change-request review, duplicate/self-edge protection, and same-transaction audit records. The deterministic seed now provides primary, secondary, tertiary, verified, and pending relationships across 11 graph entities. Verification passed with 33 unit tests, 20 PostgreSQL integration tests, ESLint, TypeScript, and the production webpack build.
 
 ### Task 8: One-Hop Graph UI, Pivoting, and Relationship Details
 

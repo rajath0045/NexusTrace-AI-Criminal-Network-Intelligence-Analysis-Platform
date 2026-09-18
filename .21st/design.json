@@ -89,7 +89,8 @@
     ]
   },
   "decisions": [
-    "Authentication uses a restrained split layout and the protected workspace uses a compact capability-driven sidebar."
+    "Authentication uses a restrained split layout and the protected workspace uses a compact capability-driven sidebar.",
+    "The login access selector uses a minimal centered card over a near-black, blue binary rain background with reduced-motion support."
   ],
   "evidence": [
     {

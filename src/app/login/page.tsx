@@ -1,8 +1,28 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentActor } from "@/server/auth/session";
 import { loginAction } from "./actions";
-import { LoginForm } from "./login-form";
+import { AuthenticationPanel } from "./authentication-panel";
+
+const MATRIX_CHARACTERS = "01";
+
+const matrixColumns = Array.from({ length: 44 }, (_, index) => {
+  const columnLength = 16 + ((index * 5) % 15);
+  const duration = 14 + (index % 7) * 1.8;
+  const delay = -((index * 2.35) % duration);
+
+  return {
+    id: index,
+    duration,
+    delay,
+    characters: Array.from({ length: columnLength }, (_, charIndex) => ({
+      id: `${index}-${charIndex}`,
+      value: MATRIX_CHARACTERS[(index * 7 + charIndex * 3 + charIndex) % MATRIX_CHARACTERS.length],
+      opacity: 0.58 + ((charIndex % 6) * 0.08),
+    })),
+  };
+});
 
 export default async function LoginPage() {
   if (await getCurrentActor()) {
@@ -10,51 +30,42 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="login-shell">
-      <section className="login-context" aria-labelledby="login-title">
-        <Link className="brand-lockup" href="/" aria-label="NexusTrace home">
-          <span className="brand-mark" aria-hidden="true">
-            NT
-          </span>
-          <span>NEXUSTRACE / INTELLIGENCE SYSTEM</span>
-        </Link>
-
-        <div className="login-context-copy">
-          <p className="eyebrow">Secure operator access</p>
-          <h1 id="login-title">Enter the investigation workspace.</h1>
-          <p>
-            Access is role-scoped, session activity is auditable, and all records in
-            this environment are synthetic.
-          </p>
+    <main className="auth-page" aria-label="NexusTrace identity verification">
+      <div className="auth-cyber-background" aria-hidden="true">
+        <div className="auth-matrix">
+          {matrixColumns.map((column) => (
+            <div
+              key={column.id}
+              className="matrix-column"
+              style={
+                {
+                  "--matrix-duration": `${column.duration}s`,
+                  "--matrix-delay": `${column.delay}s`,
+                } as CSSProperties
+              }
+            >
+              {column.characters.map((character) => (
+                <span
+                  key={character.id}
+                  style={{ opacity: character.opacity }}
+                >
+                  {character.value}
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
+        <div className="auth-vignette" />
+      </div>
 
-        <dl className="access-posture">
-          <div>
-            <dt>Session</dt>
-            <dd>12-hour revocable access</dd>
-          </div>
-          <div>
-            <dt>Data posture</dt>
-            <dd>Synthetic demonstration records</dd>
-          </div>
-        </dl>
-      </section>
+      <Link className="auth-back-link" href="/" aria-label="Back to home page">
+        <span aria-hidden="true">←</span>
+        <span>Back</span>
+      </Link>
 
-      <section className="login-panel" aria-label="Sign in">
-        <div className="login-card">
-          <div>
-            <p className="login-kicker">Identity verification</p>
-            <h2>Sign in</h2>
-            <p className="login-instruction">
-              Use an authorized NexusTrace demonstration account.
-            </p>
-          </div>
-          <LoginForm action={loginAction} />
-          <p className="login-notice">
-            Authentication events are recorded without storing submitted passwords.
-          </p>
-        </div>
-      </section>
+      <div className="auth-panel-shell">
+        <AuthenticationPanel action={loginAction} />
+      </div>
     </main>
   );
 }
