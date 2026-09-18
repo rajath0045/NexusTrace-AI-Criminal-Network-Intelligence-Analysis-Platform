@@ -16,6 +16,7 @@ const navigation: ReadonlyArray<{
   code: string;
   capability: Capability;
 }> = [
+  { href: "/dashboard", label: "Dashboard", code: "00", capability: "CASE_VIEW" },
   { href: "/cases", label: "Cases", code: "01", capability: "CASE_VIEW" },
   {
     href: "/network",
@@ -47,7 +48,7 @@ export function AppShell({ actor, children }: AppShellProps) {
   return (
     <div className="app-frame">
       <aside className="app-sidebar">
-        <Link className="brand-lockup" href="/cases" aria-label="NexusTrace cases">
+        <Link className="brand-lockup" href="/dashboard" aria-label="NexusTrace dashboard">
           <span className="brand-mark" aria-hidden="true">
             NT
           </span>

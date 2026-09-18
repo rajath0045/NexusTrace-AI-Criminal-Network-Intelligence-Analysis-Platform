@@ -89,7 +89,7 @@ export async function loginAction(
   }
 
   await createSession(user.id);
-  redirect("/cases");
+  redirect("/dashboard");
 }
 
 export async function logoutAction(): Promise<never> {

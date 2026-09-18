@@ -123,6 +123,19 @@ describe("WorkspaceLayoutService", () => {
     });
   });
 
+  it("rejects duplicate or structurally invalid presentation payloads", async () => {
+    const service = new WorkspaceLayoutService(
+      new MemoryWorkspaceLayoutRepository(),
+    );
+
+    await expect(
+      service.saveLayout(administrator, "dashboard", [
+        { id: "case-status", label: "Case status", size: "wide" },
+        { id: "case-status", label: "Case status", size: "lg" },
+      ]),
+    ).rejects.toThrow("Duplicate workspace widget id");
+  });
+
   it("falls back to defaults for unsupported saved versions", async () => {
     const repository = new MemoryWorkspaceLayoutRepository();
     repository.records.set(`${administrator.userId}:dashboard`, {

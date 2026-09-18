@@ -73,3 +73,14 @@
 - Extended the deterministic synthetic seed to 11 graph entities and 5 relationships covering primary, secondary, tertiary, verified, and pending intelligence with observation timestamps and interaction counts.
 - ESLint, TypeScript, 33 unit tests, 20 PostgreSQL integration tests, and the production webpack build pass.
 - Next implementation phase: Task 8, focused Cytoscape network exploration and connection details.
+
+## 2026-09-18 — Customizable Dashboard and Cases workspace milestone complete
+
+- Added a versioned, presentation-only `UserWorkspaceLayout` PostgreSQL preference with a unique `(userId, workspaceKey)` constraint. Layouts persist only widget ID, authoritative label, and size; no case, person, evidence, or investigation records are stored in layout JSON.
+- Workspace operations derive the user exclusively from the authenticated server session. The service strictly validates layout payloads, rejects duplicate or structural fields, migrates recognized legacy versions, filters unauthorized and stale widget IDs, and always restores server-authoritative labels and role capabilities before returning a layout.
+- Added role-aware defaults and independent user preferences for the Dashboard and Cases workspace keys. A saved arrangement survives refresh and logout/login, while Customize mode is intentionally client-local and every page opens in fixed professional mode.
+- Added a reusable workspace grid and toolbar with fixed/customize modes, keyboard-supported foundation interaction, Small/Wide/Tall/Large controls, Save, and Reset Page Layout. Normal mode passes `editable={false}`; only an explicit Customize action enables editing.
+- Added the authenticated Dashboard and integrated `/cases` without replacing the Cases header, Register Case action, authorization, or real case table. The Cases table is the primary workspace content; supporting widgets show only actor-authorized, already-projected case information.
+- Verified Administrator persistence and reset behavior plus a Department User's isolated role-default experience through the protected UI. Automated coverage includes service validation, authorization filtering, user isolation, repository upsert uniqueness, widget-grid interaction, and workspace save/reset behavior.
+- `pnpm typecheck`, `pnpm lint`, 53 unit/component tests, 22 PostgreSQL integration tests, and `next build --webpack` pass.
+- The graph/Cytoscape workspace phase has not started; Task 8 remains the next implementation phase.

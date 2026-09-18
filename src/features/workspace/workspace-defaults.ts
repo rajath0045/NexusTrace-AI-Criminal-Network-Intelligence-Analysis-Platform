@@ -18,10 +18,10 @@ const roleOrder: Readonly<
       "recent-investigations",
     ],
     cases: [
+      "current-investigations",
       "case-status",
       "register-case",
       "recently-updated",
-      "current-investigations",
     ],
   },
   [UserRole.DepartmentUser]: {
@@ -32,15 +32,15 @@ const roleOrder: Readonly<
       "recent-investigations",
     ],
     cases: [
+      "current-investigations",
       "case-status",
       "register-case",
       "recently-updated",
-      "current-investigations",
     ],
   },
   [UserRole.Investigator]: {
     dashboard: ["case-status", "access-scope", "recent-investigations"],
-    cases: ["case-status", "recently-updated", "current-investigations"],
+    cases: ["current-investigations", "case-status", "recently-updated"],
   },
 };
 

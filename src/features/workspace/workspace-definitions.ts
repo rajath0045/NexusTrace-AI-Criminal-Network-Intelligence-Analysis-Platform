@@ -36,7 +36,7 @@ const casesWidgets: readonly WorkspaceWidgetDefinition[] = [
   {
     id: "current-investigations",
     label: "Current investigations",
-    size: "lg",
+    size: "wide",
     capability: "CASE_VIEW",
   },
   {

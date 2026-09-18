@@ -90,7 +90,8 @@
   },
   "decisions": [
     "Authentication uses a restrained split layout and the protected workspace uses a compact capability-driven sidebar.",
-    "The login access selector uses a minimal centered card over a near-black, blue binary rain background with reduced-motion support."
+    "The login access selector uses a minimal centered card over a near-black, blue binary rain background with reduced-motion support.",
+    "Authenticated dashboard and cases pages use a fixed-by-default, user-customizable widget grid with restrained inline layout controls and existing semantic tokens."
   ],
   "evidence": [
     {

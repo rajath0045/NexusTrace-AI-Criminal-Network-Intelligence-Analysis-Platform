@@ -1,37 +1,38 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { WorkspaceGrid } from "@/features/workspace/workspace-grid";
 import {
+  AccessScope,
   CaseStatusSummary,
-  CurrentInvestigations,
   RecentInvestigations,
   RegisterCaseWidget,
 } from "@/features/workspace/case-workspace-widgets";
-import { WorkspaceGrid } from "@/features/workspace/workspace-grid";
 import { getCurrentActor } from "@/server/auth/session";
 import { can } from "@/server/authorization/policy";
 import { listCases } from "@/server/services/case-service";
 import { getWorkspaceLayout } from "@/server/services/workspace-layout-service";
 
-export default async function CasesPage() {
+export default async function DashboardPage() {
   const actor = await getCurrentActor();
   if (!actor) redirect("/login");
+
   const [cases, layout] = await Promise.all([
     listCases(actor),
-    getWorkspaceLayout(actor, "cases"),
+    getWorkspaceLayout(actor, "dashboard"),
   ]);
 
   const widgets = [
-    {
-      id: "current-investigations",
-      content: <CurrentInvestigations cases={cases} />,
-    },
     {
       id: "case-status",
       content: <CaseStatusSummary cases={cases} />,
     },
     {
-      id: "recently-updated",
-      content: <RecentInvestigations cases={cases} title="Recently updated" />,
+      id: "recent-investigations",
+      content: <RecentInvestigations cases={cases} />,
+    },
+    {
+      id: "access-scope",
+      content: <AccessScope actor={actor} />,
     },
     ...(can(actor, "CASE_CREATE")
       ? [{ id: "register-case", content: <RegisterCaseWidget /> }]
@@ -42,23 +43,20 @@ export default async function CasesPage() {
     <div className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Authorized records</p>
-          <h1>Cases</h1>
-          <p>FIRs and investigations available within your access scope.</p>
+          <p className="eyebrow">Authenticated workspace</p>
+          <h1>Dashboard</h1>
+          <p>Authorized case activity and investigation access for this session.</p>
         </div>
-        {can(actor, "CASE_CREATE") ? (
-          <Link className="primary-button" href="/cases/new">
-            Register case
-          </Link>
-        ) : null}
+        <Link className="secondary-button" href="/cases">
+          View all cases
+        </Link>
       </header>
+
       <WorkspaceGrid
-        workspaceKey="cases"
+        workspaceKey="dashboard"
         initialItems={layout.items}
         widgets={widgets}
-        ariaLabel="Cases workspace widgets"
-        maxColumns={2}
-        cellSize={360}
+        ariaLabel="Authenticated dashboard widgets"
       />
     </div>
   );
