@@ -105,3 +105,12 @@
 - Added selectable neighborhood focus mode with graduated level 0–3 prominence, Clear Focus, Recenter, compact collapsible legend, and expanded authorized node/connection summaries while keeping detailed evidence in the existing panels.
 - Updated focused component coverage for marker tooltip content, semantic labels, node selection, edge selection, focus mode, Clear Focus, legend behavior, and preserved server-filter controls.
 - ESLint, TypeScript, 68 unit/component tests, 22 PostgreSQL integration tests, and the webpack production build pass.
+
+## 2026-09-19 — Task 9 incident management and unified timeline complete
+
+- Added a canonical PostgreSQL Incident domain with independent submission status (`DRAFT` through `ACCEPTED`) and verification level (`UNVERIFIED`, `DEPARTMENT_VERIFIED`, `CROSS_VERIFIED`), normalized participant/evidence links, canonical Incident graph entities, and Case/FIR references.
+- Investigator submissions are always pending department review. Department Users can create and review only in their department scope, and evidence-backed accepted records can become Department-Verified. Cross-verification is restricted to Administrators and requires prior Department verification; all significant transitions write audit events transactionally.
+- Added server-scoped Incident list/detail workspaces, fixed by default with per-user saved panel arrangements. Detail panels cover summary, people, secure evidence links, timeline, audit activity, and authorized review actions.
+- Added an authorized, bounded unified timeline projection over Incident, Case, Evidence, and existing relationship observations. Person, Case, and Incident scopes support chronological filtering and optional bounded time windows without duplicating source records.
+- Extended deterministic data with department-verified, cross-verified, and pending synthetic incidents linked to cases, people, evidence, and graph entities. Repaired the historical graph-index migration sequence and verified local Prisma migration status.
+- ESLint, TypeScript, 76 unit/component tests, 25 PostgreSQL integration tests, Prisma migration status, and the production webpack build pass.

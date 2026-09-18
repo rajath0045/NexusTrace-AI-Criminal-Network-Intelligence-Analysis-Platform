@@ -6,8 +6,10 @@ import { ProfileCases } from "@/features/people/profile-cases";
 import { ProfileHeader } from "@/features/people/profile-header";
 import { ProfileRelationships } from "@/features/people/profile-relationships";
 import { ProfileTabs, type ProfileTabDefinition } from "@/features/people/profile-tabs";
+import { TimelineList } from "@/features/incidents/timeline-list";
 import { getCurrentActor } from "@/server/auth/session";
 import { getPersonProfile } from "@/server/services/person-service";
+import { getTimeline } from "@/server/services/incident-service";
 
 function DeferredSection({ title }: { title: string }) {
   return <EmptyState title={`No ${title.toLowerCase()} in this phase`} description={`${title} will appear here when verified records are added in a later approved phase.`} />;
@@ -18,8 +20,10 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
   if (!actor) redirect("/login");
 
   let profile;
+  let timeline;
   try {
-    profile = await getPersonProfile(actor, (await params).personId);
+    const personId = (await params).personId;
+    [profile, timeline] = await Promise.all([getPersonProfile(actor, personId), getTimeline(actor, { personId, types: ["ALL"] })]);
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "NOT_FOUND") notFound();
     throw error;
@@ -45,6 +49,7 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
       ),
     },
     { id: "cases", label: "Cases", content: <ProfileCases cases={profile.cases} /> },
+    { id: "timeline", label: "Timeline", content: <TimelineList items={timeline} title="Person timeline" /> },
     { id: "associates", label: "Associates", content: <DeferredSection title="Associates" /> },
     { id: "communications", label: "Communications", content: <DeferredSection title="Communications" /> },
     { id: "financial-activity", label: "Financial Activity", content: <DeferredSection title="Financial activity" /> },

@@ -18,16 +18,17 @@ const navigation: ReadonlyArray<{
 }> = [
   { href: "/dashboard", label: "Dashboard", code: "00", capability: "CASE_VIEW" },
   { href: "/cases", label: "Cases", code: "01", capability: "CASE_VIEW" },
+  { href: "/incidents", label: "Incidents", code: "02", capability: "CASE_VIEW" },
   {
     href: "/network",
     label: "Network",
-    code: "02",
+    code: "03",
     capability: "RELATIONSHIP_SUGGEST",
   },
   {
     href: "/admin",
     label: "Administration",
-    code: "03",
+    code: "04",
     capability: "ADMINISTER",
   },
 ];

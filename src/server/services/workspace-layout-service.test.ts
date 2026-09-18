@@ -114,6 +114,21 @@ describe("WorkspaceLayoutService", () => {
       .toEqual(adminGraph.items.map((item) => item.id));
   });
 
+  it("keeps incident-detail analytical panel layouts isolated per authenticated user", async () => {
+    const repository = new MemoryWorkspaceLayoutRepository();
+    const service = new WorkspaceLayoutService(repository);
+    const administratorLayout = await service.getLayout(administrator, "incident-detail");
+    const departmentLayout = await service.getLayout(departmentUser, "incident-detail");
+    const rearranged = [...administratorLayout.items].reverse();
+
+    await service.saveLayout(administrator, "incident-detail", rearranged);
+
+    expect((await service.getLayout(administrator, "incident-detail")).items.map((item) => item.id))
+      .toEqual(rearranged.map((item) => item.id));
+    expect((await service.getLayout(departmentUser, "incident-detail")).items.map((item) => item.id))
+      .toEqual(departmentLayout.items.map((item) => item.id));
+  });
+
   it("filters unauthorized and stale widget ids before saving", async () => {
     const service = new WorkspaceLayoutService(
       new MemoryWorkspaceLayoutRepository(),

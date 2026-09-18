@@ -74,7 +74,7 @@ export interface GraphEntityView {
   entityType: GraphEntityType;
   displayLabel: string;
   verificationState: VerificationState;
-  canonicalRecord: { type: "PERSON" | "CASE"; id: string } | null;
+  canonicalRecord: { type: "PERSON" | "CASE" | "INCIDENT"; id: string } | null;
 }
 
 export interface GraphEdgeView {

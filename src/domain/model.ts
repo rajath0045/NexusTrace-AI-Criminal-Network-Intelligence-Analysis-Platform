@@ -51,3 +51,45 @@ export enum VerificationState {
   Rejected = "REJECTED",
   ChangesRequested = "CHANGES_REQUESTED",
 }
+
+export enum IncidentType {
+  Crime = "CRIME",
+  SuspiciousEvent = "SUSPICIOUS_EVENT",
+  Meeting = "MEETING",
+  Accident = "ACCIDENT",
+  Transaction = "TRANSACTION",
+  Communication = "COMMUNICATION",
+  Movement = "MOVEMENT",
+  Other = "OTHER",
+}
+
+export enum IncidentStatus {
+  Open = "OPEN",
+  Active = "ACTIVE",
+  Resolved = "RESOLVED",
+  Archived = "ARCHIVED",
+}
+
+export enum IncidentSubmissionStatus {
+  Draft = "DRAFT",
+  PendingReview = "PENDING_REVIEW",
+  ChangesRequested = "CHANGES_REQUESTED",
+  Rejected = "REJECTED",
+  Accepted = "ACCEPTED",
+}
+
+export enum IncidentVerificationLevel {
+  Unverified = "UNVERIFIED",
+  DepartmentVerified = "DEPARTMENT_VERIFIED",
+  CrossVerified = "CROSS_VERIFIED",
+}
+
+export enum IncidentParticipation {
+  Suspect = "SUSPECT",
+  Accused = "ACCUSED",
+  Victim = "VICTIM",
+  Witness = "WITNESS",
+  Complainant = "COMPLAINANT",
+  Investigator = "INVESTIGATOR",
+  Other = "OTHER",
+}

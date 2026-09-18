@@ -31,6 +31,7 @@ const entitySelect = {
   departmentId: true,
   personId: true,
   caseId: true,
+  incidentId: true,
 } satisfies Prisma.GraphEntitySelect;
 
 const relationshipDetailInclude = {
@@ -96,6 +97,8 @@ function toEntity(record: EntityRecord): GraphEntityView {
       ? { type: "PERSON", id: record.personId }
       : record.caseId
         ? { type: "CASE", id: record.caseId }
+        : record.incidentId
+          ? { type: "INCIDENT", id: record.incidentId }
         : null,
   };
 }

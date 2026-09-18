@@ -60,6 +60,48 @@ enum VerificationState {
   CHANGES_REQUESTED
 }
 
+enum IncidentType {
+  CRIME
+  SUSPICIOUS_EVENT
+  MEETING
+  ACCIDENT
+  TRANSACTION
+  COMMUNICATION
+  MOVEMENT
+  OTHER
+}
+
+enum IncidentStatus {
+  OPEN
+  ACTIVE
+  RESOLVED
+  ARCHIVED
+}
+
+enum IncidentSubmissionStatus {
+  DRAFT
+  PENDING_REVIEW
+  CHANGES_REQUESTED
+  REJECTED
+  ACCEPTED
+}
+
+enum IncidentVerificationLevel {
+  UNVERIFIED
+  DEPARTMENT_VERIFIED
+  CROSS_VERIFIED
+}
+
+enum IncidentParticipation {
+  SUSPECT
+  ACCUSED
+  VICTIM
+  WITNESS
+  COMPLAINANT
+  INVESTIGATOR
+  OTHER
+}
+
 model Department {
   id            String              @id @default(uuid()) @db.Uuid
   code          String              @unique
@@ -67,6 +109,7 @@ model Department {
   users         User[]
   cases         Case[]
   evidence      Evidence[]
+  incidents     Incident[]
   graphEntities GraphEntity[]
   relationships GraphRelationship[]
   auditEvents   AuditEvent[]
@@ -90,6 +133,9 @@ model User {
   verifiedRelationships GraphRelationship[]   @relation("RelationshipVerifier")
   auditEvents           AuditEvent[]
   workspaceLayouts      UserWorkspaceLayout[]
+  submittedIncidents    Incident[]              @relation("IncidentSubmitter")
+  departmentVerifiedIncidents Incident[]         @relation("IncidentDepartmentVerifier")
+  crossVerifiedIncidents Incident[]              @relation("IncidentCrossVerifier")
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -142,6 +188,7 @@ model Case {
   evidence               Evidence[]
   graphEntity            GraphEntity?
   relationshipEvidence   RelationshipEvidence[]
+  incidents              Incident[]
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
@@ -160,6 +207,7 @@ model Person {
   identityData Json?
   cases        CasePerson[]
   graphEntity  GraphEntity?
+  incidents    IncidentParticipant[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -197,6 +245,7 @@ model Evidence {
   description          String?
   verificationState    VerificationState      @default(PENDING)
   relationshipEvidence RelationshipEvidence[]
+  incidentEvidence     IncidentEvidence[]
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
@@ -217,6 +266,9 @@ model GraphEntity {
   person             Person?             @relation(fields: [personId], references: [id], onDelete: Cascade)
   caseId             String?             @unique @db.Uuid
   case               Case?               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  incidentId         String?             @unique @db.Uuid
+  incident           Incident?           @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  incidentParticipants IncidentParticipant[] @relation("IncidentEntityParticipant")
   canonicalReference String?             @unique
   outgoing           GraphRelationship[] @relation("RelationshipSource")
   incoming           GraphRelationship[] @relation("RelationshipTarget")
@@ -225,6 +277,75 @@ model GraphEntity {
 
   @@index([departmentId, entityType])
   @@index([verificationState])
+}
+
+model Incident {
+  id                       String                    @id @default(uuid()) @db.Uuid
+  incidentNumber           String                    @unique
+  incidentType             IncidentType
+  title                    String
+  description              String
+  occurredAt               DateTime
+  location                 String?
+  status                   IncidentStatus            @default(OPEN)
+  submissionStatus         IncidentSubmissionStatus  @default(PENDING_REVIEW)
+  verificationLevel        IncidentVerificationLevel @default(UNVERIFIED)
+  departmentId             String                    @db.Uuid
+  department               Department                @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  caseId                   String?                   @db.Uuid
+  case                     Case?                     @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  submittedById            String                    @db.Uuid
+  submittedBy              User                      @relation("IncidentSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  submittedAt              DateTime                  @default(now())
+  departmentVerifiedById   String?                   @db.Uuid
+  departmentVerifiedBy     User?                     @relation("IncidentDepartmentVerifier", fields: [departmentVerifiedById], references: [id], onDelete: SetNull)
+  departmentVerifiedAt     DateTime?
+  crossVerifiedById        String?                   @db.Uuid
+  crossVerifiedBy          User?                     @relation("IncidentCrossVerifier", fields: [crossVerifiedById], references: [id], onDelete: SetNull)
+  crossVerifiedAt          DateTime?
+  reviewReason             String?
+  people                   IncidentParticipant[]
+  evidence                 IncidentEvidence[]
+  graphEntity              GraphEntity?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+
+  @@index([departmentId, occurredAt])
+  @@index([caseId, occurredAt])
+  @@index([submittedById, submissionStatus])
+  @@index([verificationLevel, occurredAt])
+}
+
+model IncidentParticipant {
+  id            String                @id @default(uuid()) @db.Uuid
+  incidentId    String                @db.Uuid
+  incident      Incident              @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  personId      String?               @db.Uuid
+  person        Person?               @relation(fields: [personId], references: [id], onDelete: Restrict)
+  graphEntityId String?               @db.Uuid
+  graphEntity   GraphEntity?          @relation("IncidentEntityParticipant", fields: [graphEntityId], references: [id], onDelete: Restrict)
+  participation IncidentParticipation
+  notes         String?
+  createdAt     DateTime              @default(now())
+
+  @@unique([incidentId, personId, participation])
+  @@index([personId, createdAt])
+  @@index([graphEntityId, createdAt])
+  @@index([incidentId])
+}
+
+model IncidentEvidence {
+  id          String   @id @default(uuid()) @db.Uuid
+  incidentId  String   @db.Uuid
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  evidenceId  String   @db.Uuid
+  evidence    Evidence @relation(fields: [evidenceId], references: [id], onDelete: Restrict)
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@unique([incidentId, evidenceId])
+  @@index([evidenceId])
+  @@index([incidentId])
 }
 
 model GraphRelationship {

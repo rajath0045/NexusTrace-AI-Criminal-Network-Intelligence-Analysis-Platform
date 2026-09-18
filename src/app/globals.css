@@ -1463,6 +1463,66 @@ textarea {
   background: var(--surface-1);
 }
 
+.timeline-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.timeline-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.timeline-filter button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: .72rem;
+  line-height: 1;
+  padding: .45rem .6rem;
+  text-transform: capitalize;
+}
+
+.timeline-filter button[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  color: var(--text);
+  background: rgb(38 134 237 / 16%);
+}
+
+.timeline-list {
+  display: grid;
+  gap: .85rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline-list li {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+  gap: .9rem;
+  align-items: start;
+  border-left: 2px solid var(--border-strong);
+  padding: .15rem 0 .15rem .9rem;
+}
+
+.timeline-list time,
+.timeline-list p,
+.timeline-list span {
+  color: var(--text-muted);
+  font-size: .82rem;
+}
+
+.timeline-list p { margin: .3rem 0; }
+.timeline-list span { display: block; }
+
+@media (max-width: 720px) {
+  .timeline-list li { grid-template-columns: 1fr; gap: .35rem; }
+}
+
 .record-form {
   display: grid;
   gap: 1.5rem;

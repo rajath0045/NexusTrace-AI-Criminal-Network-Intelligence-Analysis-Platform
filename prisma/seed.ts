@@ -5,6 +5,11 @@ import {
   CaseStatus,
   EvidenceConfidence,
   GraphEntityType,
+  IncidentParticipation,
+  IncidentStatus,
+  IncidentSubmissionStatus,
+  IncidentType,
+  IncidentVerificationLevel,
   RelationshipStrength,
   UserRole,
   VerificationState,
@@ -67,6 +72,25 @@ const ids = {
     account: "71000000-0000-4000-8000-000000000002",
     vehicle: "71000000-0000-4000-8000-000000000003",
     location: "71000000-0000-4000-8000-000000000004",
+  },
+  incidents: {
+    kioskMeeting: "80000000-0000-4000-8000-000000000001",
+    transferObservation: "80000000-0000-4000-8000-000000000002",
+    investigatorLead: "80000000-0000-4000-8000-000000000003",
+  },
+  incidentParticipants: {
+    arjun: "81000000-0000-4000-8000-000000000001",
+    meera: "81000000-0000-4000-8000-000000000002",
+    kabir: "81000000-0000-4000-8000-000000000003",
+  },
+  incidentEvidence: {
+    kiosk: "82000000-0000-4000-8000-000000000001",
+    transfer: "82000000-0000-4000-8000-000000000002",
+  },
+  incidentEntities: {
+    kioskMeeting: "83000000-0000-4000-8000-000000000001",
+    transferObservation: "83000000-0000-4000-8000-000000000002",
+    investigatorLead: "83000000-0000-4000-8000-000000000003",
   },
 } as const;
 
@@ -772,8 +796,49 @@ export async function seedSyntheticDemoData() {
     }),
   ]);
 
+  const incidents = [
+    {
+      id: ids.incidents.kioskMeeting, incidentNumber: "INC-108", incidentType: IncidentType.MEETING, title: "Service kiosk meeting observed",
+      description: "Synthetic observation of an in-person meeting near the service kiosk. The record does not itself establish unlawful activity.", occurredAt: new Date("2026-08-16T12:05:00.000Z"), location: "Synthetic service kiosk, Bengaluru",
+      status: IncidentStatus.ACTIVE, submissionStatus: IncidentSubmissionStatus.ACCEPTED, verificationLevel: IncidentVerificationLevel.DEPARTMENT_VERIFIED,
+      departmentId: ids.departments.cyber, caseId: ids.cases.accountTakeover, submittedById: ids.users.departmentUser, departmentVerifiedById: ids.users.departmentUser, departmentVerifiedAt: new Date("2026-08-18T10:00:00.000Z"), crossVerifiedById: null, crossVerifiedAt: null, reviewReason: "Validated against synthetic call and observation material.",
+    },
+    {
+      id: ids.incidents.transferObservation, incidentNumber: "INC-212", incidentType: IncidentType.TRANSACTION, title: "High-velocity transfer observation",
+      description: "Synthetic transaction-related event retained for later incident-window comparison; it is not an automated criminality finding.", occurredAt: new Date("2026-08-19T13:45:00.000Z"), location: "Mumbai, Maharashtra",
+      status: IncidentStatus.OPEN, submissionStatus: IncidentSubmissionStatus.ACCEPTED, verificationLevel: IncidentVerificationLevel.CROSS_VERIFIED,
+      departmentId: ids.departments.financial, caseId: ids.cases.muleNetwork, submittedById: ids.users.investigator, departmentVerifiedById: ids.users.administrator, departmentVerifiedAt: new Date("2026-08-20T09:00:00.000Z"), crossVerifiedById: ids.users.administrator, crossVerifiedAt: new Date("2026-08-22T09:00:00.000Z"), reviewReason: "Cross-department synthetic verification completed.",
+    },
+    {
+      id: ids.incidents.investigatorLead, incidentNumber: "INC-213", incidentType: IncidentType.SUSPICIOUS_EVENT, title: "New contact observation submitted for review",
+      description: "Synthetic investigator submission demonstrating the pending department review workflow.", occurredAt: new Date("2026-08-18T15:20:00.000Z"), location: "Mumbai, Maharashtra",
+      status: IncidentStatus.OPEN, submissionStatus: IncidentSubmissionStatus.PENDING_REVIEW, verificationLevel: IncidentVerificationLevel.UNVERIFIED,
+      departmentId: ids.departments.financial, caseId: ids.cases.muleNetwork, submittedById: ids.users.investigator, departmentVerifiedById: null, departmentVerifiedAt: null, crossVerifiedById: null, crossVerifiedAt: null, reviewReason: null,
+    },
+  ] as const;
+  for (const incident of incidents) await prisma.incident.upsert({ where: { id: incident.id }, update: incident, create: incident });
+
+  const incidentEntities = [
+    { id: ids.incidentEntities.kioskMeeting, incidentId: ids.incidents.kioskMeeting, displayLabel: "INC-108", departmentId: ids.departments.cyber, verificationState: VerificationState.VERIFIED },
+    { id: ids.incidentEntities.transferObservation, incidentId: ids.incidents.transferObservation, displayLabel: "INC-212", departmentId: ids.departments.financial, verificationState: VerificationState.VERIFIED },
+    { id: ids.incidentEntities.investigatorLead, incidentId: ids.incidents.investigatorLead, displayLabel: "INC-213", departmentId: ids.departments.financial, verificationState: VerificationState.PENDING },
+  ] as const;
+  for (const entity of incidentEntities) await prisma.graphEntity.upsert({ where: { id: entity.id }, update: { ...entity, entityType: GraphEntityType.INCIDENT, canonicalReference: `incident:${entity.displayLabel}`, personId: null, caseId: null }, create: { ...entity, entityType: GraphEntityType.INCIDENT, canonicalReference: `incident:${entity.displayLabel}`, personId: null, caseId: null } });
+
+  const participants = [
+    { id: ids.incidentParticipants.arjun, incidentId: ids.incidents.kioskMeeting, personId: ids.people.arjun, graphEntityId: null, participation: IncidentParticipation.SUSPECT, notes: "Synthetic participant link." },
+    { id: ids.incidentParticipants.meera, incidentId: ids.incidents.kioskMeeting, personId: ids.people.meera, graphEntityId: null, participation: IncidentParticipation.WITNESS, notes: "Synthetic participant link." },
+    { id: ids.incidentParticipants.kabir, incidentId: ids.incidents.transferObservation, personId: ids.people.kabir, graphEntityId: null, participation: IncidentParticipation.ACCUSED, notes: "Synthetic participant link." },
+  ] as const;
+  for (const participant of participants) await prisma.incidentParticipant.upsert({ where: { id: participant.id }, update: participant, create: participant });
+  const incidentEvidence = [
+    { id: ids.incidentEvidence.kiosk, incidentId: ids.incidents.kioskMeeting, evidenceId: ids.evidence.callSummary, note: "Synthetic kiosk observation source." },
+    { id: ids.incidentEvidence.transfer, incidentId: ids.incidents.transferObservation, evidenceId: ids.evidence.transactionLedger, note: "Synthetic transfer observation source." },
+  ] as const;
+  for (const source of incidentEvidence) await prisma.incidentEvidence.upsert({ where: { id: source.id }, update: source, create: source });
+
   console.info(
-    "Seeded deterministic NexusTrace demo data: 3 departments, 3 users, 2 cases, 4 people, 2 evidence records, 11 graph entities, and 5 relationships.",
+    "Seeded deterministic NexusTrace demo data: 3 departments, 3 users, 2 cases, 4 people, 2 evidence records, 3 incidents, 14 graph entities, and 5 relationships.",
   );
 }
 

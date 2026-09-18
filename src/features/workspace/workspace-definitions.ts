@@ -65,10 +65,28 @@ const graphWidgets: readonly WorkspaceWidgetDefinition[] = [
   { id: "supporting-evidence", label: "Supporting evidence", size: "wide", capability: "CASE_VIEW" },
 ];
 
+const incidentsWidgets: readonly WorkspaceWidgetDefinition[] = [
+  { id: "incident-register", label: "Incident register", size: "lg", capability: "CASE_VIEW" },
+  { id: "review-queue", label: "Review queue", size: "wide", capability: "INCIDENT_REVIEW" },
+  { id: "submit-incident", label: "Submit incident observation", size: "sm", capability: "INCIDENT_SUBMIT" },
+  { id: "create-incident", label: "Create incident", size: "sm", capability: "INCIDENT_CREATE" },
+];
+
+const incidentDetailWidgets: readonly WorkspaceWidgetDefinition[] = [
+  { id: "incident-summary", label: "Incident summary", size: "wide", capability: "CASE_VIEW" },
+  { id: "incident-people", label: "People involved", size: "wide", capability: "CASE_VIEW" },
+  { id: "incident-evidence", label: "Supporting evidence", size: "wide", capability: "CASE_VIEW" },
+  { id: "incident-timeline", label: "Investigation timeline", size: "lg", capability: "CASE_VIEW" },
+  { id: "incident-audit", label: "Audit activity", size: "wide", capability: "CASE_VIEW" },
+  { id: "incident-review", label: "Review and provenance", size: "wide", capability: "INCIDENT_REVIEW" },
+];
+
 export const workspaceWidgetDefinitions: Readonly<
   Record<WorkspaceKey, readonly WorkspaceWidgetDefinition[]>
 > = {
   dashboard: dashboardWidgets,
   cases: casesWidgets,
   graph: graphWidgets,
+  incidents: incidentsWidgets,
+  "incident-detail": incidentDetailWidgets,
 };

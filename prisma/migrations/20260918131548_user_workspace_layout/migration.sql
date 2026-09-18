@@ -18,6 +18,3 @@ CREATE UNIQUE INDEX "UserWorkspaceLayout_userId_workspaceKey_key" ON "UserWorksp
 
 -- AddForeignKey
 ALTER TABLE "UserWorkspaceLayout" ADD CONSTRAINT "UserWorkspaceLayout_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- RenameIndex
-ALTER INDEX "GraphRelationship_sourceEntityId_targetEntityId_relationshipTyp" RENAME TO "GraphRelationship_sourceEntityId_targetEntityId_relationshi_key";
