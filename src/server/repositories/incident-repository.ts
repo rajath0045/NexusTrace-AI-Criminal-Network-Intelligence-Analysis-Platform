@@ -1,6 +1,7 @@
 import type { Actor } from "@/domain/auth";
 import type {
   IncidentDetail,
+  IncidentEntityReference,
   IncidentInput,
   IncidentReview,
   IncidentSummary,
@@ -12,6 +13,7 @@ import type { IncidentVerificationLevel } from "@/domain/model";
 
 export interface IncidentRepository {
   listForActor(actor: Actor): Promise<IncidentSummary[]>;
+  listEntityCandidatesForActor(actor: Actor): Promise<IncidentEntityReference[]>;
   findForActor(actor: Actor, incidentId: string): Promise<IncidentDetail | null>;
   create(actor: Actor, input: IncidentInput, mode: "SUBMISSION" | "CANONICAL"): Promise<IncidentDetail>;
   update(actor: Actor, incidentId: string, input: IncidentUpdate): Promise<IncidentDetail | null>;

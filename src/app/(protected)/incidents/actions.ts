@@ -12,7 +12,10 @@ export interface IncidentActionState { error?: string; fieldErrors?: Record<stri
 function readInput(formData: FormData) {
   return incidentInputSchema.safeParse({
     incidentNumber: formData.get("incidentNumber"), incidentType: formData.get("incidentType"), title: formData.get("title"), description: formData.get("description"), occurredAt: formData.get("occurredAt"), location: formData.get("location"), caseId: formData.get("caseId"),
-    people: formData.getAll("personIds").filter((value): value is string => typeof value === "string" && value.length > 0).map((personId) => ({ personId, participation: formData.get("participation") })),
+    people: [
+      ...formData.getAll("personIds").filter((value): value is string => typeof value === "string" && value.length > 0).map((personId) => ({ personId, participation: formData.get("participation") })),
+      ...formData.getAll("entityIds").filter((value): value is string => typeof value === "string" && value.length > 0).map((graphEntityId) => ({ graphEntityId, participation: formData.get("participation") })),
+    ],
     evidenceIds: formData.getAll("evidenceIds").filter((value): value is string => typeof value === "string" && value.length > 0),
   });
 }

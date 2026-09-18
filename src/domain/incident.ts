@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  GraphEntityType,
   IncidentParticipation,
   IncidentStatus,
   IncidentSubmissionStatus,
@@ -81,6 +82,12 @@ export interface IncidentParticipantView {
   displayName: string;
   participation: IncidentParticipation;
   notes: string | null;
+}
+
+export interface IncidentEntityReference {
+  id: string;
+  displayLabel: string;
+  entityType: GraphEntityType;
 }
 
 export interface IncidentEvidenceView {

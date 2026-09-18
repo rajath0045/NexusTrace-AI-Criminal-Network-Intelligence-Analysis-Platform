@@ -4,6 +4,7 @@ import { ConflictError, NotFoundError, ValidationError } from "@/domain/errors";
 import type {
   IncidentAuditView,
   IncidentDetail,
+  IncidentEntityReference,
   IncidentInput,
   IncidentReview,
   IncidentSummary,
@@ -113,6 +114,16 @@ function acceptsType(query: TimelineQuery, type: TimelineItem["type"]): boolean 
 }
 
 export class PrismaIncidentRepository implements IncidentRepository {
+  async listEntityCandidatesForActor(actor: Actor): Promise<IncidentEntityReference[]> {
+    const records = await prisma.graphEntity.findMany({
+      where: actor.role === UserRole.Administrator ? {} : { departmentId: actor.departmentId },
+      select: { id: true, displayLabel: true, entityType: true },
+      orderBy: [{ entityType: "asc" }, { displayLabel: "asc" }],
+      take: 250,
+    });
+    return records.map((record) => ({ id: record.id, displayLabel: record.displayLabel, entityType: record.entityType as GraphEntityType }));
+  }
+
   async listForActor(actor: Actor): Promise<IncidentSummary[]> {
     const records = await prisma.incident.findMany({
       where: scope(actor),

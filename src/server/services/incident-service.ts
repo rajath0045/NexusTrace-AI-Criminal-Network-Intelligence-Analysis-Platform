@@ -7,6 +7,7 @@ import {
   incidentVerificationSchema,
   timelineQuerySchema,
   type IncidentDetail,
+  type IncidentEntityReference,
   type IncidentInput,
   type IncidentReview,
   type IncidentSummary,
@@ -30,6 +31,11 @@ export class IncidentService {
   async listIncidents(actor: Actor): Promise<IncidentSummary[]> {
     assertCan(actor, "CASE_VIEW");
     return this.repository.listForActor(actor);
+  }
+
+  async listIncidentEntityCandidates(actor: Actor): Promise<IncidentEntityReference[]> {
+    assertCan(actor, "CASE_VIEW");
+    return this.repository.listEntityCandidatesForActor(actor);
   }
 
   async getIncident(actor: Actor, incidentId: string): Promise<IncidentDetail> {
@@ -86,6 +92,7 @@ export class IncidentService {
 
 const incidentService = new IncidentService(new PrismaIncidentRepository());
 export const listIncidents = incidentService.listIncidents.bind(incidentService);
+export const listIncidentEntityCandidates = incidentService.listIncidentEntityCandidates.bind(incidentService);
 export const getIncident = incidentService.getIncident.bind(incidentService);
 export const submitIncident = incidentService.submitIncident.bind(incidentService);
 export const createIncident = incidentService.createIncident.bind(incidentService);

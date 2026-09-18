@@ -11,7 +11,7 @@ const administrator = { ...investigator, role: UserRole.Administrator };
 const input = { incidentNumber: "INC-999", incidentType: IncidentType.SuspiciousEvent, title: "Synthetic incident observation", description: "Synthetic incident observation suitable for a service test.", occurredAt: new Date("2026-09-01T09:00:00.000Z"), location: "Synthetic location", caseId: ids.case, people: [{ personId: ids.person, participation: IncidentParticipation.Witness }], evidenceIds: [ids.evidence] };
 
 function repositoryStub(): IncidentRepository {
-  return { listForActor: vi.fn(), findForActor: vi.fn(), create: vi.fn(), update: vi.fn(), review: vi.fn(), verify: vi.fn(), timelineForActor: vi.fn() };
+  return { listForActor: vi.fn(), listEntityCandidatesForActor: vi.fn(), findForActor: vi.fn(), create: vi.fn(), update: vi.fn(), review: vi.fn(), verify: vi.fn(), timelineForActor: vi.fn() };
 }
 
 describe("IncidentService", () => {
