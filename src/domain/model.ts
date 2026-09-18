@@ -93,3 +93,26 @@ export enum IncidentParticipation {
   Investigator = "INVESTIGATOR",
   Other = "OTHER",
 }
+
+export enum CommunicationType {
+  Call = "CALL",
+  Message = "MESSAGE",
+  Email = "EMAIL",
+  DigitalContact = "DIGITAL_CONTACT",
+  Other = "OTHER",
+}
+
+export enum CommunicationDirection {
+  Inbound = "INBOUND",
+  Outbound = "OUTBOUND",
+  Bidirectional = "BIDIRECTIONAL",
+  Unknown = "UNKNOWN",
+}
+
+export enum FinancialTransactionType {
+  Transfer = "TRANSFER",
+  CashDeposit = "CASH_DEPOSIT",
+  CashWithdrawal = "CASH_WITHDRAWAL",
+  Payment = "PAYMENT",
+  Other = "OTHER",
+}

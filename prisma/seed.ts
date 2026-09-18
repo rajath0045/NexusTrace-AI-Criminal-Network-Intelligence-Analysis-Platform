@@ -3,6 +3,8 @@ import { hash, argon2id, type HashOptions } from "argon2";
 import {
   CaseParticipation,
   CaseStatus,
+  CommunicationDirection,
+  CommunicationType,
   EvidenceConfidence,
   GraphEntityType,
   IncidentParticipation,
@@ -10,6 +12,7 @@ import {
   IncidentSubmissionStatus,
   IncidentType,
   IncidentVerificationLevel,
+  FinancialTransactionType,
   RelationshipStrength,
   UserRole,
   VerificationState,
@@ -30,6 +33,7 @@ const ids = {
   cases: {
     accountTakeover: "30000000-0000-4000-8000-000000000001",
     muleNetwork: "30000000-0000-4000-8000-000000000002",
+    deviceCorrelation: "30000000-0000-4000-8000-000000000003",
   },
   people: {
     arjun: "40000000-0000-4000-8000-000000000001",
@@ -42,10 +46,12 @@ const ids = {
     meera: "41000000-0000-4000-8000-000000000002",
     kabir: "41000000-0000-4000-8000-000000000003",
     nisha: "41000000-0000-4000-8000-000000000004",
+    arjunDeviceCorrelation: "41000000-0000-4000-8000-000000000005",
   },
   evidence: {
     callSummary: "50000000-0000-4000-8000-000000000001",
     transactionLedger: "50000000-0000-4000-8000-000000000002",
+    deviceMetadata: "50000000-0000-4000-8000-000000000003",
   },
   entities: {
     arjun: "60000000-0000-4000-8000-000000000001",
@@ -91,6 +97,30 @@ const ids = {
     kioskMeeting: "83000000-0000-4000-8000-000000000001",
     transferObservation: "83000000-0000-4000-8000-000000000002",
     investigatorLead: "83000000-0000-4000-8000-000000000003",
+  },
+  communications: {
+    baselineOne: "90000000-0000-4000-8000-000000000001",
+    baselineTwo: "90000000-0000-4000-8000-000000000002",
+    baselineThree: "90000000-0000-4000-8000-000000000003",
+    spikeOne: "90000000-0000-4000-8000-000000000004",
+    spikeTwo: "90000000-0000-4000-8000-000000000005",
+    spikeThree: "90000000-0000-4000-8000-000000000006",
+    spikeFour: "90000000-0000-4000-8000-000000000007",
+    spikeFive: "90000000-0000-4000-8000-000000000008",
+    spikeSix: "90000000-0000-4000-8000-000000000009",
+    spikeSeven: "90000000-0000-4000-8000-000000000010",
+    spikeEight: "90000000-0000-4000-8000-000000000011",
+    spikeNine: "90000000-0000-4000-8000-000000000012",
+    spikeTen: "90000000-0000-4000-8000-000000000013",
+    spikeEleven: "90000000-0000-4000-8000-000000000014",
+    spikeTwelve: "90000000-0000-4000-8000-000000000015",
+    newDevice: "90000000-0000-4000-8000-000000000016",
+  },
+  transactions: {
+    baselineOne: "91000000-0000-4000-8000-000000000001",
+    baselineTwo: "91000000-0000-4000-8000-000000000002",
+    baselineThree: "91000000-0000-4000-8000-000000000003",
+    exceptional: "91000000-0000-4000-8000-000000000004",
   },
 } as const;
 
@@ -241,6 +271,11 @@ export async function seedSyntheticDemoData() {
       },
     }),
     prisma.case.upsert({
+      where: { id: ids.cases.deviceCorrelation },
+      update: { firNumber: "FIR-109", caseNumber: "CCU-2026-109", title: "Shared device correlation review", category: "Cyber fraud", occurredAt: new Date("2026-08-17T08:20:00.000Z"), occurrenceLocation: "Bengaluru, Karnataka", status: CaseStatus.OPEN, description: "Synthetic separate case used to demonstrate authorized cross-case device context.", departmentId: ids.departments.cyber, investigatingOfficerId: ids.users.departmentUser },
+      create: { id: ids.cases.deviceCorrelation, firNumber: "FIR-109", caseNumber: "CCU-2026-109", title: "Shared device correlation review", category: "Cyber fraud", occurredAt: new Date("2026-08-17T08:20:00.000Z"), occurrenceLocation: "Bengaluru, Karnataka", status: CaseStatus.OPEN, description: "Synthetic separate case used to demonstrate authorized cross-case device context.", departmentId: ids.departments.cyber, investigatingOfficerId: ids.users.departmentUser },
+    }),
+    prisma.case.upsert({
       where: { id: ids.cases.muleNetwork },
       update: {
         firNumber: "FIR-212",
@@ -352,6 +387,7 @@ export async function seedSyntheticDemoData() {
       participation: CaseParticipation.WITNESS,
       notes: "Synthetic witness profile.",
     },
+    { id: ids.casePeople.arjunDeviceCorrelation, caseId: ids.cases.deviceCorrelation, personId: ids.people.arjun, participation: CaseParticipation.SUSPECT, notes: "Synthetic cross-case device context." },
   ] as const;
 
   for (const casePerson of casePeople) {
@@ -392,6 +428,11 @@ export async function seedSyntheticDemoData() {
         description: "Metadata-only seed record; no evidence bytes are committed.",
         verificationState: VerificationState.VERIFIED,
       },
+    }),
+    prisma.evidence.upsert({
+      where: { id: ids.evidence.deviceMetadata },
+      update: { caseId: ids.cases.deviceCorrelation, uploadedById: ids.users.departmentUser, departmentId: ids.departments.cyber, originalFilename: "synthetic-device-metadata.csv", mediaType: "text/csv", byteSize: 1536, checksumSha256: "3333333333333333333333333333333333333333333333333333333333333333", storageKey: "seed/ccu/synthetic-device-metadata.csv", description: "Metadata-only synthetic device context; no evidence bytes are committed.", verificationState: VerificationState.PENDING },
+      create: { id: ids.evidence.deviceMetadata, caseId: ids.cases.deviceCorrelation, uploadedById: ids.users.departmentUser, departmentId: ids.departments.cyber, originalFilename: "synthetic-device-metadata.csv", mediaType: "text/csv", byteSize: 1536, checksumSha256: "3333333333333333333333333333333333333333333333333333333333333333", storageKey: "seed/ccu/synthetic-device-metadata.csv", description: "Metadata-only synthetic device context; no evidence bytes are committed.", verificationState: VerificationState.PENDING },
     }),
     prisma.evidence.upsert({
       where: { id: ids.evidence.transactionLedger },
@@ -837,8 +878,47 @@ export async function seedSyntheticDemoData() {
   ] as const;
   for (const source of incidentEvidence) await prisma.incidentEvidence.upsert({ where: { id: source.id }, update: source, create: source });
 
+  const communicationTimes = [
+    "2026-08-03T09:15:00.000Z", "2026-08-05T15:40:00.000Z", "2026-08-07T10:05:00.000Z",
+    "2026-08-15T08:10:00.000Z", "2026-08-15T09:35:00.000Z", "2026-08-15T11:05:00.000Z", "2026-08-15T12:20:00.000Z", "2026-08-15T14:55:00.000Z", "2026-08-15T17:10:00.000Z",
+    "2026-08-16T07:45:00.000Z", "2026-08-16T09:00:00.000Z", "2026-08-16T10:25:00.000Z", "2026-08-16T13:10:00.000Z", "2026-08-16T15:05:00.000Z", "2026-08-16T16:40:00.000Z",
+  ];
+  const communicationIds = [
+    ids.communications.baselineOne, ids.communications.baselineTwo, ids.communications.baselineThree,
+    ids.communications.spikeOne, ids.communications.spikeTwo, ids.communications.spikeThree, ids.communications.spikeFour, ids.communications.spikeFive, ids.communications.spikeSix,
+    ids.communications.spikeSeven, ids.communications.spikeEight, ids.communications.spikeNine, ids.communications.spikeTen, ids.communications.spikeEleven, ids.communications.spikeTwelve,
+  ];
+  for (const [index, id] of communicationIds.entries()) {
+    const record = {
+      id, communicationNumber: `COM-108-${String(index + 1).padStart(3, "0")}`, communicationType: CommunicationType.CALL,
+      occurredAt: new Date(communicationTimes[index]!), sourceEntityId: ids.entities.arjun, destinationEntityId: index === 14 ? ids.entities.device : ids.entities.meera,
+      sourceIdentifier: "+91 90000 00108", destinationIdentifier: "+91 90000 00109", durationSeconds: 90 + index * 15,
+      direction: CommunicationDirection.BIDIRECTIONAL, caseId: ids.cases.accountTakeover, incidentId: ids.incidents.kioskMeeting,
+      sourceEvidenceId: ids.evidence.callSummary, departmentId: ids.departments.cyber, verificationLevel: IncidentVerificationLevel.DEPARTMENT_VERIFIED,
+    };
+    await prisma.communicationRecord.upsert({ where: { id }, update: record, create: record });
+  }
+  const newDeviceCommunication = {
+    id: ids.communications.newDevice, communicationNumber: "COM-109-001", communicationType: CommunicationType.DIGITAL_CONTACT,
+    occurredAt: new Date("2026-08-17T08:40:00.000Z"), sourceEntityId: ids.entities.arjun, destinationEntityId: ids.entities.device,
+    sourceIdentifier: "+91 90000 00108", destinationIdentifier: "SYN-D-108", durationSeconds: null, direction: CommunicationDirection.UNKNOWN,
+    caseId: ids.cases.deviceCorrelation, incidentId: null, sourceEvidenceId: ids.evidence.deviceMetadata, departmentId: ids.departments.cyber, verificationLevel: IncidentVerificationLevel.UNVERIFIED,
+  };
+  await prisma.communicationRecord.upsert({ where: { id: newDeviceCommunication.id }, update: newDeviceCommunication, create: newDeviceCommunication });
+
+  const transactions = [
+    { id: ids.transactions.baselineOne, transactionNumber: "TXN-212-001", occurredAt: new Date("2026-08-07T10:00:00.000Z"), amount: 10_000 },
+    { id: ids.transactions.baselineTwo, transactionNumber: "TXN-212-002", occurredAt: new Date("2026-08-09T10:00:00.000Z"), amount: 18_500 },
+    { id: ids.transactions.baselineThree, transactionNumber: "TXN-212-003", occurredAt: new Date("2026-08-11T10:00:00.000Z"), amount: 25_000 },
+    { id: ids.transactions.exceptional, transactionNumber: "TXN-212-004", occurredAt: new Date("2026-08-19T13:45:00.000Z"), amount: 480_000 },
+  ];
+  for (const transaction of transactions) {
+    const record = { ...transaction, transactionType: FinancialTransactionType.TRANSFER, sourceEntityId: ids.entities.kabir, destinationEntityId: ids.entities.bankAccount, currency: "INR", caseId: ids.cases.muleNetwork, incidentId: ids.incidents.transferObservation, sourceEvidenceId: ids.evidence.transactionLedger, departmentId: ids.departments.financial, verificationLevel: IncidentVerificationLevel.CROSS_VERIFIED };
+    await prisma.financialTransaction.upsert({ where: { id: record.id }, update: record, create: record });
+  }
+
   console.info(
-    "Seeded deterministic NexusTrace demo data: 3 departments, 3 users, 2 cases, 4 people, 2 evidence records, 3 incidents, 14 graph entities, and 5 relationships.",
+    "Seeded deterministic NexusTrace demo data: 3 departments, 3 users, 3 cases, 4 people, 3 evidence records, 3 incidents, 16 communications, 4 transactions, 14 graph entities, and 5 relationships.",
   );
 }
 

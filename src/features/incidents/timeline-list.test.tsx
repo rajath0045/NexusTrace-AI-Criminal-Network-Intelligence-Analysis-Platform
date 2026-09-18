@@ -22,4 +22,12 @@ describe("TimelineList", () => {
     render(<TimelineList items={[]} />);
     expect(screen.getByText("No timeline activity")).toBeVisible();
   });
+
+  it("filters authoritative communication and financial timeline projections", async () => {
+    const user = userEvent.setup();
+    render(<TimelineList items={[...items, { id: "communication:1", type: "COMMUNICATION", timestamp: new Date("2026-09-03T10:00:00.000Z"), title: "Communication event", description: "Protected metadata", sourceRecordType: "COMMUNICATION", sourceRecordId: "communication-1", caseId: "case-1", incidentId: null, personIds: [], evidenceId: null }]} />);
+    await user.click(screen.getByRole("button", { name: "communication" }));
+    expect(screen.getByText("Communication event")).toBeVisible();
+    expect(screen.queryByText("Incident event")).not.toBeInTheDocument();
+  });
 });

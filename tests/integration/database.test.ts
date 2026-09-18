@@ -49,4 +49,16 @@ describe("PostgreSQL investigation persistence", () => {
       true,
     );
   });
+
+  it("persists deterministic communication and financial records with provenance links", async () => {
+    const [communications, transactions] = await Promise.all([
+      prisma.communicationRecord.findMany({ include: { sourceEvidence: true }, orderBy: { occurredAt: "asc" } }),
+      prisma.financialTransaction.findMany({ include: { sourceEvidence: true }, orderBy: { amount: "desc" } }),
+    ]);
+    expect(communications).toHaveLength(16);
+    expect(communications.filter((record) => record.communicationType === "CALL")).toHaveLength(15);
+    expect(communications.every((record) => record.sourceEvidence)).toBe(true);
+    expect(transactions.map((record) => record.amount.toNumber())).toEqual(expect.arrayContaining([480_000, 10_000, 18_500, 25_000]));
+    expect(transactions.every((record) => record.sourceEvidence)).toBe(true);
+  });
 });

@@ -102,6 +102,29 @@ enum IncidentParticipation {
   OTHER
 }
 
+enum CommunicationType {
+  CALL
+  MESSAGE
+  EMAIL
+  DIGITAL_CONTACT
+  OTHER
+}
+
+enum CommunicationDirection {
+  INBOUND
+  OUTBOUND
+  BIDIRECTIONAL
+  UNKNOWN
+}
+
+enum FinancialTransactionType {
+  TRANSFER
+  CASH_DEPOSIT
+  CASH_WITHDRAWAL
+  PAYMENT
+  OTHER
+}
+
 model Department {
   id            String              @id @default(uuid()) @db.Uuid
   code          String              @unique
@@ -113,6 +136,8 @@ model Department {
   graphEntities GraphEntity[]
   relationships GraphRelationship[]
   auditEvents   AuditEvent[]
+  communications CommunicationRecord[]
+  financialTransactions FinancialTransaction[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 }
@@ -189,6 +214,8 @@ model Case {
   graphEntity            GraphEntity?
   relationshipEvidence   RelationshipEvidence[]
   incidents              Incident[]
+  communications         CommunicationRecord[]
+  financialTransactions  FinancialTransaction[]
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
@@ -246,6 +273,8 @@ model Evidence {
   verificationState    VerificationState      @default(PENDING)
   relationshipEvidence RelationshipEvidence[]
   incidentEvidence     IncidentEvidence[]
+  communicationSources CommunicationRecord[] @relation("CommunicationSourceEvidence")
+  financialTransactionSources FinancialTransaction[] @relation("FinancialTransactionSourceEvidence")
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
@@ -272,6 +301,10 @@ model GraphEntity {
   canonicalReference String?             @unique
   outgoing           GraphRelationship[] @relation("RelationshipSource")
   incoming           GraphRelationship[] @relation("RelationshipTarget")
+  sourceCommunications CommunicationRecord[] @relation("CommunicationSource")
+  destinationCommunications CommunicationRecord[] @relation("CommunicationDestination")
+  sourceTransactions FinancialTransaction[] @relation("FinancialTransactionSource")
+  destinationTransactions FinancialTransaction[] @relation("FinancialTransactionDestination")
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -307,6 +340,8 @@ model Incident {
   people                   IncidentParticipant[]
   evidence                 IncidentEvidence[]
   graphEntity              GraphEntity?
+  communications           CommunicationRecord[]
+  financialTransactions    FinancialTransaction[]
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
 
@@ -396,6 +431,68 @@ model RelationshipEvidence {
   @@index([relationshipId])
   @@index([evidenceId])
   @@index([sourceCaseId])
+}
+
+model CommunicationRecord {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  communicationNumber   String                    @unique
+  communicationType     CommunicationType
+  occurredAt            DateTime
+  sourceEntityId        String                    @db.Uuid
+  sourceEntity          GraphEntity               @relation("CommunicationSource", fields: [sourceEntityId], references: [id], onDelete: Restrict)
+  destinationEntityId   String                    @db.Uuid
+  destinationEntity     GraphEntity               @relation("CommunicationDestination", fields: [destinationEntityId], references: [id], onDelete: Restrict)
+  sourceIdentifier      String?
+  destinationIdentifier String?
+  durationSeconds       Int?
+  direction             CommunicationDirection    @default(UNKNOWN)
+  caseId                String?                   @db.Uuid
+  case                  Case?                     @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  incidentId            String?                   @db.Uuid
+  incident              Incident?                 @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  sourceEvidenceId      String?                   @db.Uuid
+  sourceEvidence        Evidence?                 @relation("CommunicationSourceEvidence", fields: [sourceEvidenceId], references: [id], onDelete: SetNull)
+  departmentId          String                    @db.Uuid
+  department            Department                @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  verificationLevel     IncidentVerificationLevel @default(UNVERIFIED)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  @@index([departmentId, occurredAt])
+  @@index([caseId, occurredAt])
+  @@index([incidentId, occurredAt])
+  @@index([sourceEntityId, occurredAt])
+  @@index([destinationEntityId, occurredAt])
+}
+
+model FinancialTransaction {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  transactionNumber   String                    @unique
+  transactionType     FinancialTransactionType
+  occurredAt          DateTime
+  sourceEntityId      String                    @db.Uuid
+  sourceEntity        GraphEntity               @relation("FinancialTransactionSource", fields: [sourceEntityId], references: [id], onDelete: Restrict)
+  destinationEntityId String                    @db.Uuid
+  destinationEntity   GraphEntity               @relation("FinancialTransactionDestination", fields: [destinationEntityId], references: [id], onDelete: Restrict)
+  amount              Decimal                   @db.Decimal(18, 2)
+  currency            String                    @default("INR")
+  caseId              String?                   @db.Uuid
+  case                Case?                     @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  incidentId          String?                   @db.Uuid
+  incident            Incident?                 @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  sourceEvidenceId    String?                   @db.Uuid
+  sourceEvidence      Evidence?                 @relation("FinancialTransactionSourceEvidence", fields: [sourceEvidenceId], references: [id], onDelete: SetNull)
+  departmentId        String                    @db.Uuid
+  department          Department                @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  verificationLevel   IncidentVerificationLevel @default(UNVERIFIED)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([departmentId, occurredAt])
+  @@index([caseId, occurredAt])
+  @@index([incidentId, occurredAt])
+  @@index([sourceEntityId, occurredAt])
+  @@index([destinationEntityId, occurredAt])
 }
 
 model AuditEvent {

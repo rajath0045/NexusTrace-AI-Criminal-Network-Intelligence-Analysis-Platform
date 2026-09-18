@@ -11,6 +11,8 @@ export const capabilities = [
   "INCIDENT_CREATE",
   "INCIDENT_REVIEW",
   "INCIDENT_CROSS_VERIFY",
+  "ACTIVITY_CREATE",
+  "INVESTIGATION_ANALYZE",
   "ADMINISTER",
 ] as const;
 
