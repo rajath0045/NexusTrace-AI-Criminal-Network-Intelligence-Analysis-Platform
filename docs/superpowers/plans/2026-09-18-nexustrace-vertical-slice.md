@@ -241,7 +241,7 @@ git commit -m "feat: add secure sessions and role authorization"
 **Interfaces:**
 - Produces: `CaseRepository.listForActor`, `CaseRepository.findForActor`, `CaseRepository.create`, `createCase(actor, input)`, and `getCase(actor, caseId)`.
 
-- [ ] **Step 1: Write failing scoped-access tests**
+- [x] **Step 1: Write failing scoped-access tests**
 
 ```ts
 it("does not reveal a restricted case from another department", async () => {
@@ -250,23 +250,23 @@ it("does not reveal a restricted case from another department", async () => {
 });
 ```
 
-- [ ] **Step 2: Verify the tests fail**
+- [x] **Step 2: Verify the tests fail**
 
 Run: `pnpm vitest run src/server/services/case-service.test.ts tests/integration/case-repository.test.ts`
 
-- [ ] **Step 3: Implement scoped repositories and transactional creation**
+- [x] **Step 3: Implement scoped repositories and transactional creation**
 
 Create the case and its CASE graph entity in one PostgreSQL transaction, write an audit event, and reject FIR/case-number conflicts without leaking other-department records.
 
-- [ ] **Step 4: Implement accessible list, form, and detail UI**
+- [x] **Step 4: Implement accessible list, form, and detail UI**
 
 Use server-rendered queries, labels and field errors, role-aware create actions, table empty state, and route-level loading/error boundaries.
 
-- [ ] **Step 5: Verify case behavior**
+- [x] **Step 5: Verify case behavior**
 
 Run: `pnpm vitest run src/server/services/case-service.test.ts tests/integration/case-repository.test.ts && pnpm lint && pnpm typecheck`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/domain/case.ts src/server/repositories src/server/services/case-service.ts 'src/app/(protected)/cases' src/features/cases tests/integration/case-repository.test.ts

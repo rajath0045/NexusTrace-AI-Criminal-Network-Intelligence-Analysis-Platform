@@ -27,3 +27,13 @@
 - The external 21st source-upload review was not run because this environment did not authorize exporting repository code; an equivalent local semantic, responsive, focus, and reduced-motion review was completed.
 - Targeted authentication tests, full unit tests, integration tests, ESLint, TypeScript, and the production webpack build pass.
 - Next implementation phase: Task 4, authorized Case/FIR workflow.
+
+## 2026-09-18 — Task 4 complete
+
+- Added validated Case/FIR domain inputs, typed not-found/conflict failures, and a service boundary that independently enforces capabilities.
+- Added actor-scoped PostgreSQL list/detail queries that return no record for unauthorized departments while allowing Administrator cross-department access.
+- Case creation now writes the case, its first-class CASE graph entity, and its audit event in one transaction and translates unique FIR/case conflicts safely.
+- Added authenticated case list, registration, and detail routes with role-aware actions, accessible form errors, loading/error/empty states, and responsive tables and panels.
+- Corrected the unit-test script's integration exclude quoting after multiple integration files exposed shell glob expansion.
+- ESLint, TypeScript, 11 unit/component tests, 4 PostgreSQL integration tests, and the production webpack build pass.
+- Next implementation phase: Task 5, consolidated person profiles.

@@ -615,6 +615,264 @@ textarea {
   padding: clamp(1.5rem, 4vw, 3.5rem);
 }
 
+.page-stack {
+  display: grid;
+  gap: 2rem;
+}
+
+.narrow-page {
+  max-width: 62rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 4vw, 4.2rem);
+  font-weight: 620;
+  letter-spacing: -0.055em;
+}
+
+.page-header > div > p:last-child {
+  margin: 0.8rem 0 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 0.95rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.primary-button {
+  border: 0;
+  background: var(--accent-strong);
+  color: white;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.secondary-button {
+  width: fit-content;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.back-link {
+  width: fit-content;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-label span {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+}
+
+.section-label h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table-frame {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.table-frame table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-frame th,
+.table-frame td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table-frame th {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table-frame td {
+  color: #cbd6e4;
+  font-size: 0.78rem;
+}
+
+.table-frame tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table-frame tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.table-frame td strong,
+.table-frame td span:not(.status-badge) {
+  display: block;
+}
+
+.table-frame td strong {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.table-frame td span:not(.status-badge) {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.record-panel {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.record-form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.form-span-2 {
+  grid-column: span 2;
+}
+
+.record-form textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--text);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.case-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16rem;
+  gap: 1.5rem;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.record-description {
+  margin: 1.5rem 0;
+  color: #cbd6e4;
+  line-height: 1.7;
+}
+
+.record-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--border);
+}
+
+.record-facts div {
+  padding: 1rem 1rem 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.record-facts dt,
+.case-metrics span {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.record-facts dd {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+}
+
+.case-metrics {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.case-metrics div {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.case-metrics strong {
+  display: block;
+  margin-top: 0.65rem;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
 .state-panel {
   max-width: 36rem;
   padding: 2rem;
@@ -739,6 +997,21 @@ textarea {
 
   .operator-card {
     display: none;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-grid,
+  .case-overview,
+  .record-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .form-span-2 {
+    grid-column: auto;
   }
 }
 
