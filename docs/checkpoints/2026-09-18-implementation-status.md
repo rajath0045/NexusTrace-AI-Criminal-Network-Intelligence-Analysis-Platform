@@ -16,3 +16,14 @@
 - Prisma schema validation, client generation, migration, seed, lint, typecheck, unit tests, and PostgreSQL integration tests pass.
 - Docker Compose remains the standard local-development path. This execution host stalled while pulling the container image, so verification used its installed PostgreSQL 18 server with an ignored project-local data directory and the same configured port.
 - Next implementation phase: Task 3, authentication, sessions, RBAC, and the protected application shell.
+
+## 2026-09-18 — Task 3 complete
+
+- Added role capabilities and department-scoping policy for Investigator, Department User, and Administrator actors.
+- Added Argon2 password verification and revocable database sessions that persist only SHA-256 token hashes while using opaque HttpOnly, SameSite=Lax cookies.
+- Added session rotation, expiry enforcement, inactive-user denial, safe stale-session cleanup, and logout destruction.
+- Added audited credential login, generic credential failures, authenticated redirects, a capability-driven protected shell, and reusable loading, empty, error, and status primitives.
+- The login and shell preserve the established compact dark interface across desktop and narrow layouts with semantic controls, visible focus, and reduced-motion handling.
+- The external 21st source-upload review was not run because this environment did not authorize exporting repository code; an equivalent local semantic, responsive, focus, and reduced-motion review was completed.
+- Targeted authentication tests, full unit tests, integration tests, ESLint, TypeScript, and the production webpack build pass.
+- Next implementation phase: Task 4, authorized Case/FIR workflow.

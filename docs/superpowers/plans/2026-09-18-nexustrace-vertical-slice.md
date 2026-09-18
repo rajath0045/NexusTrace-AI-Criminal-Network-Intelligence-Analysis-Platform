@@ -180,7 +180,7 @@ git commit -m "feat: add PostgreSQL investigation data model"
 - Produces: `Actor`, `Capability`, `can(actor, capability)`, `assertCan(actor, capability)`, `createSession(userId)`, `getCurrentActor()`, and `destroyCurrentSession()`.
 - Produces: capabilities `CASE_VIEW`, `CASE_CREATE`, `EVIDENCE_ATTACH`, `RELATIONSHIP_SUGGEST`, `RELATIONSHIP_VERIFY`, and `ADMINISTER`.
 
-- [ ] **Step 1: Write failing policy tests**
+- [x] **Step 1: Write failing policy tests**
 
 ```ts
 it("prevents investigators from creating verified relationships", () => {
@@ -194,27 +194,27 @@ it("allows department users to create cases only for their department", () => {
 });
 ```
 
-- [ ] **Step 2: Verify the policy tests fail**
+- [x] **Step 2: Verify the policy tests fail**
 
 Run: `pnpm vitest run src/server/authorization/policy.test.ts`
 
 Expected: FAIL because the policy API is missing.
 
-- [ ] **Step 3: Implement policy and session services**
+- [x] **Step 3: Implement policy and session services**
 
 Store only a random session-token hash in PostgreSQL, place the opaque token in an `HttpOnly`, `Secure` in production, `SameSite=Lax` cookie, rotate it on login, and enforce expiry and active-user checks on every actor resolution.
 
-- [ ] **Step 4: Implement login and protected shell**
+- [x] **Step 4: Implement login and protected shell**
 
 Validate credentials server-side, use a generic invalid-credentials response, record safe audit metadata, redirect authenticated users to `/cases`, and render navigation actions from capabilities.
 
-- [ ] **Step 5: Verify authentication and authorization**
+- [x] **Step 5: Verify authentication and authorization**
 
 Run: `pnpm vitest run src/server/auth src/server/authorization src/app/login`
 
 Expected: PASS, including expired-session and role-denial cases.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/domain/auth.ts src/server/auth src/server/authorization src/server/repositories src/app/login 'src/app/(protected)' src/components

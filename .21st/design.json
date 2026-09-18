@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "project": {
+    "name": "nexustrace-ai",
+    "productType": "criminal intelligence investigation workspace",
+    "stack": [
+      "nextjs",
+      "react",
+      "tailwind-v4"
+    ]
+  },
+  "sources": {
+    "tokens": [
+      "src/app/globals.css"
+    ],
+    "components": [],
+    "assets": [],
+    "instructions": []
+  },
+  "design": {
+    "colorMode": "dark",
+    "colors": {
+      "--background": {
+        "value": "#080b10",
+        "source": "src/app/globals.css"
+      },
+      "--border": {
+        "value": "#253245",
+        "source": "src/app/globals.css"
+      },
+      "--border-strong": {
+        "value": "#34445c",
+        "source": "src/app/globals.css"
+      },
+      "--text-muted": {
+        "value": "#97a6ba",
+        "source": "src/app/globals.css"
+      },
+      "--accent": {
+        "value": "#5ca9ff",
+        "source": "src/app/globals.css"
+      },
+      "--accent-strong": {
+        "value": "#2686ed",
+        "source": "src/app/globals.css"
+      }
+    },
+    "typography": {
+      "--text": {
+        "value": "#f1f5f9",
+        "source": "src/app/globals.css"
+      }
+    },
+    "spacing": {},
+    "radius": {
+      "--radius-sm": {
+        "value": "0.375rem",
+        "source": "src/app/globals.css"
+      },
+      "--radius-md": {
+        "value": "0.625rem",
+        "source": "src/app/globals.css"
+      }
+    },
+    "shadows": {
+      "--shadow-panel": {
+        "value": "0 24px 70px rgb(0 0 0 / 34%)",
+        "source": "src/app/globals.css"
+      }
+    },
+    "motion": {},
+    "density": "compact"
+  },
+  "components": {
+    "installed": [],
+    "preferredPrimitives": [],
+    "patterns": []
+  },
+  "constraints": {
+    "must": [
+      "Use the existing semantic color and radius tokens",
+      "Keep controls keyboard accessible with visible focus",
+      "Preserve responsive layouts and reduced-motion behavior"
+    ],
+    "avoid": [
+      "Gradients and glass effects",
+      "Decorative motion",
+      "Gaming or surveillance-theatre aesthetics"
+    ]
+  },
+  "decisions": [
+    "Authentication uses a restrained split layout and the protected workspace uses a compact capability-driven sidebar."
+  ],
+  "evidence": [
+    {
+      "fact": "design.colorMode:dark",
+      "source": "src/app/globals.css"
+    },
+    {
+      "fact": "design.tokens",
+      "source": "src/app/globals.css"
+    },
+    {
+      "fact": "project.stack:nextjs",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:react",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:tailwind-v4",
+      "source": "package.json"
+    }
+  ],
+  "generatedAt": "2026-09-18T08:29:58.909Z"
+}
