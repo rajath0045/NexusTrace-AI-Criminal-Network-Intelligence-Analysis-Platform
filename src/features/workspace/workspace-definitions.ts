@@ -81,6 +81,17 @@ const incidentDetailWidgets: readonly WorkspaceWidgetDefinition[] = [
   { id: "incident-review", label: "Review and provenance", size: "wide", capability: "INCIDENT_REVIEW" },
 ];
 
+const investigationWidgets: readonly WorkspaceWidgetDefinition[] = [
+  { id: "investigation-context", label: "Investigation context", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "investigation-timeline", label: "Unified timeline", size: "lg", capability: "INVESTIGATION_ANALYZE" },
+  { id: "communication-changes", label: "Communication changes", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "financial-changes", label: "Financial changes", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "network-changes", label: "Network changes", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "cross-case-links", label: "Cross-case context", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "investigation-findings", label: "Review leads", size: "lg", capability: "INVESTIGATION_ANALYZE" },
+  { id: "investigation-copilot", label: "Investigation copilot", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+];
+
 export const workspaceWidgetDefinitions: Readonly<
   Record<WorkspaceKey, readonly WorkspaceWidgetDefinition[]>
 > = {
@@ -89,4 +100,5 @@ export const workspaceWidgetDefinitions: Readonly<
   graph: graphWidgets,
   incidents: incidentsWidgets,
   "incident-detail": incidentDetailWidgets,
+  investigation: investigationWidgets,
 };

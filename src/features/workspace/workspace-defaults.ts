@@ -26,6 +26,7 @@ const roleOrder: Readonly<
     graph: ["entity-details", "connection-details", "supporting-evidence"],
     incidents: ["incident-register", "review-queue", "create-incident"],
     "incident-detail": ["incident-summary", "incident-people", "incident-evidence", "incident-timeline", "incident-audit", "incident-review"],
+    investigation: ["investigation-context", "investigation-findings", "investigation-timeline", "communication-changes", "financial-changes", "network-changes", "cross-case-links", "investigation-copilot"],
   },
   [UserRole.DepartmentUser]: {
     dashboard: [
@@ -43,6 +44,7 @@ const roleOrder: Readonly<
     graph: ["entity-details", "connection-details", "supporting-evidence"],
     incidents: ["incident-register", "review-queue", "create-incident"],
     "incident-detail": ["incident-summary", "incident-people", "incident-evidence", "incident-timeline", "incident-audit", "incident-review"],
+    investigation: ["investigation-context", "investigation-findings", "investigation-timeline", "communication-changes", "financial-changes", "network-changes", "cross-case-links", "investigation-copilot"],
   },
   [UserRole.Investigator]: {
     dashboard: ["case-status", "access-scope", "recent-investigations"],
@@ -50,6 +52,7 @@ const roleOrder: Readonly<
     graph: ["entity-details", "connection-details", "supporting-evidence"],
     incidents: ["incident-register", "submit-incident"],
     "incident-detail": ["incident-summary", "incident-people", "incident-evidence", "incident-timeline", "incident-audit"],
+    investigation: ["investigation-context", "investigation-findings", "investigation-timeline", "communication-changes", "financial-changes", "network-changes", "cross-case-links", "investigation-copilot"],
   },
 };
 

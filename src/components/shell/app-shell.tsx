@@ -25,10 +25,11 @@ const navigation: ReadonlyArray<{
     code: "03",
     capability: "RELATIONSHIP_SUGGEST",
   },
+  { href: "/investigations", label: "Investigation", code: "04", capability: "INVESTIGATION_ANALYZE" },
   {
     href: "/admin",
     label: "Administration",
-    code: "04",
+    code: "05",
     capability: "ADMINISTER",
   },
 ];
