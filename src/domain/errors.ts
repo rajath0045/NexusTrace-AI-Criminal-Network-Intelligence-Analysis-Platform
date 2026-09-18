@@ -15,3 +15,21 @@ export class ConflictError extends Error {
     this.name = "ConflictError";
   }
 }
+
+export class ValidationError extends Error {
+  readonly code = "VALIDATION";
+
+  constructor(message = "The supplied data is invalid.") {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+export class StorageError extends Error {
+  readonly code = "STORAGE";
+
+  constructor(message = "The evidence file could not be accessed.") {
+    super(message);
+    this.name = "StorageError";
+  }
+}

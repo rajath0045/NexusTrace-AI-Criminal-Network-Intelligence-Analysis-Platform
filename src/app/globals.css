@@ -397,6 +397,28 @@ textarea {
   border-color: var(--danger);
 }
 
+.field-group input[type="file"] {
+  padding: 0.55rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.field-group input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.field-hint {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
 .field-error,
 .form-error {
   margin: 0;
@@ -947,6 +969,76 @@ textarea {
   display: block;
 }
 
+.evidence-list {
+  display: grid;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.evidence-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.evidence-file-mark {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.55rem;
+}
+
+.evidence-file-copy {
+  min-width: 0;
+}
+
+.evidence-file-copy > a {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evidence-file-copy > a:hover,
+.evidence-summary-list a:hover {
+  color: var(--accent);
+}
+
+.evidence-file-copy > p {
+  margin: 0.35rem 0 0;
+  color: #c3cfdd;
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.evidence-file-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.55rem;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.evidence-file-meta span + span::before {
+  margin-right: 0.75rem;
+  color: var(--border-strong);
+  content: "/";
+}
+
 .association-disclosure {
   margin-top: 1.5rem;
   border: 1px solid var(--border);
@@ -1218,6 +1310,14 @@ textarea {
 
   .primary-navigation ul {
     grid-template-columns: 1fr;
+  }
+
+  .evidence-list li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .evidence-list li > .status-badge {
+    grid-column: 2;
   }
 }
 

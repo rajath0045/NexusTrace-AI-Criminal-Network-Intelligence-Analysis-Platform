@@ -48,3 +48,15 @@
 - The installed 21st design context guided the compact dark UI. No authenticated `21st` executable or component catalog configuration was available, so implementation used existing project components and a local accessibility/responsive review.
 - ESLint, TypeScript, 15 unit/component tests, 7 PostgreSQL integration tests, and the production webpack build pass. The default Turbopack build remains blocked by the host's internal CSS-worker port restriction.
 - Next implementation phase: Task 6, evidence attachment and authenticated retrieval.
+
+## 2026-09-18 — Task 6 complete
+
+- Added a local evidence-storage boundary rooted outside public assets, using generated storage keys and rejecting traversal or absolute paths.
+- Added server-side allowlisted MIME validation for PDF, JPEG, PNG, CSV, and plain text; non-empty files are capped at 10 MB and display filenames are normalized.
+- Evidence attachment verifies role and case scope before writing bytes, calculates SHA-256, persists metadata plus an audit event transactionally, and removes stored bytes when metadata persistence fails.
+- Added actor-scoped evidence list and lookup queries that do not reveal cross-department records to non-administrators.
+- Added the case evidence list and Department User/Administrator upload form using the existing compact dark design system; Investigators receive read-only access.
+- Added an authenticated streaming download route with private/no-store caching, safe encoded filenames, declared content length/type, and `nosniff` protection. Person-profile evidence entries reuse this protected route.
+- Added 10 focused file-safety/service/component/route tests and 2 repository integration tests; the complete suite now passes 25 unit/component tests and 9 PostgreSQL integration tests.
+- ESLint, TypeScript, and the production webpack build pass. The default Turbopack build still reaches CSS processing but cannot bind its internal worker port on this host.
+- Next implementation phase: Task 7, evidence-backed graph domain, traversal, and relationship verification.

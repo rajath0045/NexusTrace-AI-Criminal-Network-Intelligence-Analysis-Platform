@@ -57,7 +57,7 @@ export default async function PersonProfilePage({ params }: { params: Promise<{ 
         <ul className="evidence-summary-list">
           {profile.evidence.map((evidence) => (
             <li key={evidence.id}>
-              <div><strong>{evidence.originalFilename}</strong><span>{evidence.mediaType}</span></div>
+              <div><a href={`/api/evidence/${evidence.id}`}><strong>{evidence.originalFilename}</strong></a><span>{evidence.mediaType}</span></div>
               <StatusBadge>{evidence.verificationState}</StatusBadge>
             </li>
           ))}

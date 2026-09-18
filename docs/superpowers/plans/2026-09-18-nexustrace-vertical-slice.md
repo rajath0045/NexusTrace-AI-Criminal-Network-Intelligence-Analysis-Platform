@@ -336,32 +336,34 @@ Implemented with the approved scope plus the required case-participation mutatio
 **Interfaces:**
 - Produces: `EvidenceStorage.put`, `EvidenceStorage.open`, `attachEvidence(actor, caseId, file, input)`, and `openEvidence(actor, evidenceId)`.
 
-- [ ] **Step 1: Write failing file-safety and authorization tests**
+- [x] **Step 1: Write failing file-safety and authorization tests**
 
 Cover filename normalization, allowlisted MIME types, size rejection, generated storage keys, checksum calculation, department denial, and authenticated retrieval.
 
-- [ ] **Step 2: Verify tests fail**
+- [x] **Step 2: Verify tests fail**
 
 Run: `pnpm vitest run src/server/services/evidence-service.test.ts src/server/storage/local-evidence-storage.test.ts`
 
-- [ ] **Step 3: Implement storage and transactional evidence metadata**
+- [x] **Step 3: Implement storage and transactional evidence metadata**
 
 Write files under `.data/evidence`, never use the supplied filename as a path, record metadata and an audit event transactionally, and delete the stored file if metadata persistence fails.
 
-- [ ] **Step 4: Implement upload and retrieval UI**
+- [x] **Step 4: Implement upload and retrieval UI**
 
 Render the upload action only with `EVIDENCE_ATTACH`, but independently enforce it in the action and service. Stream downloads through the authenticated route with safe content headers.
 
-- [ ] **Step 5: Verify evidence behavior**
+- [x] **Step 5: Verify evidence behavior**
 
 Run: `pnpm vitest run src/server/services/evidence-service.test.ts src/server/storage/local-evidence-storage.test.ts tests/integration/evidence-repository.test.ts`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/domain/evidence.ts src/server/storage src/server/repositories src/server/services/evidence-service.ts 'src/app/(protected)/cases' src/app/api/evidence src/features/evidence tests/integration/evidence-repository.test.ts
 git commit -m "feat: add protected evidence provenance workflow"
 ```
+
+Implemented with an allowlisted 10 MB upload boundary, normalized display filenames, generated private storage keys, SHA-256 checksums, transactionally audited metadata, rollback cleanup, actor-scoped case/evidence queries, and a streamed authenticated download route with private/no-store and nosniff headers. Verification passed with 25 unit/component/route tests, 9 PostgreSQL integration tests, ESLint, TypeScript, and the production webpack build. The default Turbopack build remains blocked by this execution host's internal CSS-worker port restriction.
 
 ### Task 7: Graph Domain, Repository, Traversal, and Verification
 
