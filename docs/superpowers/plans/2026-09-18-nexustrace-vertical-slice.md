@@ -50,15 +50,15 @@
 - Produces: import alias `@/*` mapped to `src/*`.
 - Produces: validated environment names `DATABASE_URL`, `AUTH_SECRET`, `EVIDENCE_STORAGE_ROOT`.
 
-- [ ] **Step 1: Pin compatible dependencies**
+- [x] **Step 1: Pin compatible dependencies**
 
 Use current package metadata to pin a Next.js release compatible with Node 22.12 and Prisma 7 rather than Prisma 8, whose current documentation requires Node 24.
 
-- [ ] **Step 2: Create the generated/configuration scaffold**
+- [x] **Step 2: Create the generated/configuration scaffold**
 
 Create strict TypeScript, Next.js, Tailwind, ESLint, Vitest, Testing Library, and Playwright configuration. Add `.next/`, `node_modules/`, `.env*` except `.env.example`, `coverage/`, `playwright-report/`, `test-results/`, and `.data/` to `.gitignore`.
 
-- [ ] **Step 3: Write the first component test**
+- [x] **Step 3: Write the first component test**
 
 ```tsx
 it("identifies NexusTrace as an investigation platform", () => {
@@ -67,21 +67,23 @@ it("identifies NexusTrace as an investigation platform", () => {
 });
 ```
 
-- [ ] **Step 4: Verify the test fails for the missing page export**
+- [x] **Step 4: Verify the test fails for the missing page export**
 
 Run: `pnpm vitest run src/app/page.test.tsx`
 
 Expected: FAIL because `HomePage` is not implemented.
 
-- [ ] **Step 5: Implement the minimal root page and design tokens**
+- [x] **Step 5: Implement the minimal root page and design tokens**
 
 Export `HomePage`, render the product name and a link to `/login`, and define semantic CSS variables for background, surfaces, borders, text, accent, success, warning, and danger.
 
-- [ ] **Step 6: Verify the foundation**
+- [x] **Step 6: Verify the foundation**
 
 Run: `pnpm test && pnpm lint && pnpm typecheck && pnpm build`
 
 Expected: all commands exit 0.
+
+Verified on 2026-09-18 with ESLint 9.39.5 and the full Next.js React rule set enabled. `lint`, `typecheck`, and unit tests pass through the project scripts. The sandbox prevents Turbopack's CSS worker from binding its internal port, so the unchanged application was production-built successfully with the supported one-off `next build --webpack` fallback; no runtime or architecture setting was changed.
 
 - [ ] **Step 7: Commit**
 

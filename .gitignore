@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# environment and secrets
+.env
+.env.*
+!.env.example
+
+# local evidence and runtime data
+.data/
+
+# tests
+coverage/
+playwright-report/
+test-results/
+
+# tooling
+.pnpm-store/
+*.tsbuildinfo
+next-env.d.ts
+
+# operating system
+.DS_Store
