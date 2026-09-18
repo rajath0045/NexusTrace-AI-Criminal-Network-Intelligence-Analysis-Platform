@@ -64,3 +64,5 @@ Generated from project sources at 2026-09-18T08:29:58.909Z.
 ## Decisions
 
 - Authentication uses a restrained split layout and the protected workspace uses a compact capability-driven sidebar.
+- Authenticated dashboard and cases pages use a fixed-by-default, user-customizable widget grid with restrained inline layout controls and existing semantic tokens.
+- The network workspace reserves its dominant canvas for Cytoscape interactions; only surrounding evidence and detail panels use the customizable workspace grid.

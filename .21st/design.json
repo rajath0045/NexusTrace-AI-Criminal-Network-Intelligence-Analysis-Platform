@@ -91,7 +91,8 @@
   "decisions": [
     "Authentication uses a restrained split layout and the protected workspace uses a compact capability-driven sidebar.",
     "The login access selector uses a minimal centered card over a near-black, blue binary rain background with reduced-motion support.",
-    "Authenticated dashboard and cases pages use a fixed-by-default, user-customizable widget grid with restrained inline layout controls and existing semantic tokens."
+    "Authenticated dashboard and cases pages use a fixed-by-default, user-customizable widget grid with restrained inline layout controls and existing semantic tokens.",
+    "The network workspace reserves its dominant canvas for Cytoscape interactions; only surrounding evidence and detail panels use the customizable workspace grid."
   ],
   "evidence": [
     {
@@ -115,5 +116,5 @@
       "source": "package.json"
     }
   ],
-  "generatedAt": "2026-09-18T08:29:58.909Z"
+  "generatedAt": "2026-09-18T17:50:00.000Z"
 }

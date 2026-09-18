@@ -16,6 +16,13 @@ import { PrismaGraphRepository } from "@/server/graph/prisma-graph-repository";
 export class GraphService {
   constructor(private readonly repository: GraphRepository) {}
 
+  async getDefaultFocus(actor: Actor): Promise<GraphEntityView> {
+    assertCan(actor, "CASE_VIEW");
+    const entity = await this.repository.findDefaultFocusForActor(actor);
+    if (!entity) throw new NotFoundError();
+    return entity;
+  }
+
   async getEntity(actor: Actor, entityId: string): Promise<GraphEntityView> {
     assertCan(actor, "CASE_VIEW");
     if (!graphIdSchema.safeParse(entityId).success) throw new NotFoundError();
@@ -50,5 +57,6 @@ export class GraphService {
 const graphService = new GraphService(new PrismaGraphRepository());
 
 export const getGraphEntity = graphService.getEntity.bind(graphService);
+export const getDefaultGraphFocus = graphService.getDefaultFocus.bind(graphService);
 export const getNeighborhood = graphService.getNeighborhood.bind(graphService);
 export const getRelationshipDetail = graphService.getRelationshipDetail.bind(graphService);

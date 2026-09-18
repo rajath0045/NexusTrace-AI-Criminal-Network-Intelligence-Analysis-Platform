@@ -100,6 +100,20 @@ describe("WorkspaceLayoutService", () => {
     ).not.toEqual(reversed.map((item) => item.id));
   });
 
+  it("persists graph panels per user without changing another investigator's graph workspace", async () => {
+    const repository = new MemoryWorkspaceLayoutRepository();
+    const service = new WorkspaceLayoutService(repository);
+    const adminGraph = await service.getLayout(administrator, "graph");
+    const rearranged = [...adminGraph.items].reverse();
+
+    await service.saveLayout(administrator, "graph", rearranged);
+
+    expect((await service.getLayout(administrator, "graph")).items.map((item) => item.id))
+      .toEqual(rearranged.map((item) => item.id));
+    expect((await service.getLayout(departmentUser, "graph")).items.map((item) => item.id))
+      .toEqual(adminGraph.items.map((item) => item.id));
+  });
+
   it("filters unauthorized and stale widget ids before saving", async () => {
     const service = new WorkspaceLayoutService(
       new MemoryWorkspaceLayoutRepository(),

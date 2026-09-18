@@ -34,6 +34,7 @@ const input = {
 
 function repositoryStub(): GraphRepository {
   return {
+    findDefaultFocusForActor: vi.fn(),
     findEntityForActor: vi.fn(),
     getNeighborhood: vi.fn(),
     findRelationshipForActor: vi.fn(),

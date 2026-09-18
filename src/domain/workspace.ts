@@ -3,7 +3,7 @@ import type { WidgetItem, WidgetSize } from "@/components/ui/draggable-widget-gr
 
 export const WORKSPACE_LAYOUT_VERSION = 1;
 
-export const workspaceKeys = ["dashboard", "cases"] as const;
+export const workspaceKeys = ["dashboard", "cases", "graph"] as const;
 export type WorkspaceKey = (typeof workspaceKeys)[number];
 
 export interface WorkspaceLayoutItem extends WidgetItem {

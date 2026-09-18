@@ -23,6 +23,7 @@ const roleOrder: Readonly<
       "register-case",
       "recently-updated",
     ],
+    graph: ["entity-details", "connection-details", "supporting-evidence"],
   },
   [UserRole.DepartmentUser]: {
     dashboard: [
@@ -37,10 +38,12 @@ const roleOrder: Readonly<
       "register-case",
       "recently-updated",
     ],
+    graph: ["entity-details", "connection-details", "supporting-evidence"],
   },
   [UserRole.Investigator]: {
     dashboard: ["case-status", "access-scope", "recent-investigations"],
     cases: ["current-investigations", "case-status", "recently-updated"],
+    graph: ["entity-details", "connection-details", "supporting-evidence"],
   },
 };
 

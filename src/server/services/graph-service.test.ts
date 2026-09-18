@@ -14,6 +14,7 @@ const actor: Actor = {
 
 function repositoryStub(): GraphRepository {
   return {
+    findDefaultFocusForActor: vi.fn(),
     findEntityForActor: vi.fn(),
     getNeighborhood: vi.fn(),
     findRelationshipForActor: vi.fn(),
@@ -23,6 +24,15 @@ function repositoryStub(): GraphRepository {
 }
 
 describe("GraphService", () => {
+  it("selects a server-authorized default focus rather than a client fixture", async () => {
+    const repository = repositoryStub();
+    vi.mocked(repository.findDefaultFocusForActor).mockResolvedValue({ id: "root" } as never);
+    const service = new GraphService(repository);
+
+    await expect(service.getDefaultFocus(actor)).resolves.toMatchObject({ id: "root" });
+    expect(repository.findDefaultFocusForActor).toHaveBeenCalledWith(actor);
+  });
+
   it("defaults to verified primary one-hop intelligence", async () => {
     const repository = repositoryStub();
     vi.mocked(repository.getNeighborhood).mockResolvedValue({

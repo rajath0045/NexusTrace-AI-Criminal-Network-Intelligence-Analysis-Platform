@@ -162,6 +162,26 @@ function assertVerifiedState(state: RelationshipPersistenceState, sourceCount: n
 }
 
 export class PrismaGraphRepository implements GraphRepository {
+  async findDefaultFocusForActor(actor: Actor): Promise<GraphEntityView | null> {
+    const relationship = await prisma.graphRelationship.findFirst({
+      where: {
+        ...relationshipScope(actor),
+        strength: RelationshipStrength.Primary,
+        verificationState: VerificationState.Verified,
+      },
+      include: { sourceEntity: { select: entitySelect } },
+      orderBy: { id: "asc" },
+    });
+
+    if (relationship) return toEntity(relationship.sourceEntity);
+    const entity = await prisma.graphEntity.findFirst({
+      where: entityScope(actor),
+      select: entitySelect,
+      orderBy: { id: "asc" },
+    });
+    return entity ? toEntity(entity) : null;
+  }
+
   async findEntityForActor(actor: Actor, entityId: string): Promise<GraphEntityView | null> {
     const entity = await prisma.graphEntity.findFirst({
       where: { id: entityId, ...entityScope(actor) },

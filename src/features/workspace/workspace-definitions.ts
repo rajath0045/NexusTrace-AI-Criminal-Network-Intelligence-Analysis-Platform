@@ -59,9 +59,16 @@ const casesWidgets: readonly WorkspaceWidgetDefinition[] = [
   },
 ];
 
+const graphWidgets: readonly WorkspaceWidgetDefinition[] = [
+  { id: "entity-details", label: "Entity details", size: "wide", capability: "CASE_VIEW" },
+  { id: "connection-details", label: "Connection details", size: "wide", capability: "CASE_VIEW" },
+  { id: "supporting-evidence", label: "Supporting evidence", size: "wide", capability: "CASE_VIEW" },
+];
+
 export const workspaceWidgetDefinitions: Readonly<
   Record<WorkspaceKey, readonly WorkspaceWidgetDefinition[]>
 > = {
   dashboard: dashboardWidgets,
   cases: casesWidgets,
+  graph: graphWidgets,
 };

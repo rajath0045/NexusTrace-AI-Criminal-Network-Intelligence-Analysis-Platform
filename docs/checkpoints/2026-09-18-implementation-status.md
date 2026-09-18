@@ -84,3 +84,15 @@
 - Verified Administrator persistence and reset behavior plus a Department User's isolated role-default experience through the protected UI. Automated coverage includes service validation, authorization filtering, user isolation, repository upsert uniqueness, widget-grid interaction, and workspace save/reset behavior.
 - `pnpm typecheck`, `pnpm lint`, 53 unit/component tests, 22 PostgreSQL integration tests, and `next build --webpack` pass.
 - The graph/Cytoscape workspace phase has not started; Task 8 remains the next implementation phase.
+
+## 2026-09-18 — Task 8 complete
+
+- Added the `/network` criminal-network investigation workspace using Cytoscape.js already present in the project. The graph remains a dedicated, dominant canvas rather than a draggable dashboard widget.
+- Added an authenticated, server-filtered network route and connection-detail route that use Task 7 bounded traversal and presentation-safe provenance contracts. Unknown, inaccessible, and unauthorized entities/relationships receive the same non-disclosing not-found response.
+- Added primary-only, verified-only, one-hop defaults with independent relationship-strength filters, exact Task 7 verification-state filters, and intentional bounded 1/2/3-hop traversal. Graph requests are refetched only when the investigator changes graph scope or pivots focus.
+- Added stable breadth-first Cytoscape placement, entity-type shape and label distinctions, restrained strength/verification edge styles, focus highlighting, fit/reset controls, and a keyboard-accessible connection-list fallback.
+- Selecting a node updates the Entity Details panel and permits a server-backed pivot. Selecting an edge loads relationship type, interaction count, independent evidence confidence/verification state, creator metadata, provenance, and existing authenticated evidence retrieval links.
+- Extended the existing per-user workspace preference to the `graph` key for surrounding Entity Details, Connection Details, and Supporting Evidence panels. The canvas stays outside `WorkspaceGrid`, so node drag, pan, zoom, and selection never compete with Customize Layout behavior; Customize mode remains client-local and resets to fixed mode on reload.
+- Added loading, filtered-empty, request-error, and unavailable-graph states while retaining server-side RBAC and department scope as the sole source of graph authorization.
+- `pnpm lint`, `pnpm typecheck`, 63 unit/component tests, 22 PostgreSQL integration tests, and `pnpm exec next build --webpack` pass.
+- Next recommended phase: Incidents + Timeline, followed by the AI Investigation capabilities.
