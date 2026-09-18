@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMINISTRATOR
+  DEPARTMENT_USER
+  INVESTIGATOR
+}
+
+enum CaseParticipation {
+  SUSPECT
+  VICTIM
+  WITNESS
+  COMPLAINANT
+  INVESTIGATOR
+}
+
+enum CaseStatus {
+  OPEN
+  ACTIVE
+  SUSPENDED
+  CLOSED
+  ARCHIVED
+}
+
+enum GraphEntityType {
+  PERSON
+  VEHICLE
+  PROPERTY
+  PHONE
+  DEVICE
+  BANK_ACCOUNT
+  ORGANIZATION
+  LOCATION
+  CASE
+  INCIDENT
+}
+
+enum RelationshipStrength {
+  PRIMARY
+  SECONDARY
+  TERTIARY
+}
+
+enum EvidenceConfidence {
+  VERIFIED
+  PROBABLE
+  UNVERIFIED
+}
+
+enum VerificationState {
+  PENDING
+  VERIFIED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+model Department {
+  id            String              @id @default(uuid()) @db.Uuid
+  code          String              @unique
+  name          String
+  users         User[]
+  cases         Case[]
+  evidence      Evidence[]
+  graphEntities GraphEntity[]
+  relationships GraphRelationship[]
+  auditEvents   AuditEvent[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model User {
+  id                    String              @id @default(uuid()) @db.Uuid
+  email                 String              @unique
+  displayName           String
+  passwordHash          String
+  role                  UserRole
+  active                Boolean             @default(true)
+  departmentId          String              @db.Uuid
+  department            Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  sessions              Session[]
+  investigatedCases     Case[]              @relation("InvestigatingOfficer")
+  uploadedEvidence      Evidence[]          @relation("EvidenceUploader")
+  createdRelationships  GraphRelationship[] @relation("RelationshipCreator")
+  verifiedRelationships GraphRelationship[] @relation("RelationshipVerifier")
+  auditEvents           AuditEvent[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([departmentId])
+  @@index([role, active])
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  tokenHash  String   @unique
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Case {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  firNumber              String                 @unique
+  caseNumber             String                 @unique
+  title                  String
+  category               String
+  occurredAt             DateTime?
+  occurrenceLocation     String?
+  status                 CaseStatus             @default(OPEN)
+  description            String
+  departmentId           String                 @db.Uuid
+  department             Department             @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  investigatingOfficerId String?                @db.Uuid
+  investigatingOfficer   User?                  @relation("InvestigatingOfficer", fields: [investigatingOfficerId], references: [id], onDelete: SetNull)
+  people                 CasePerson[]
+  evidence               Evidence[]
+  graphEntity            GraphEntity?
+  relationshipEvidence   RelationshipEvidence[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([departmentId, status])
+  @@index([investigatingOfficerId])
+}
+
+model Person {
+  id           String       @id @default(uuid()) @db.Uuid
+  givenName    String
+  familyName   String
+  aliases      String[]     @default([])
+  dateOfBirth  DateTime?
+  gender       String?
+  nationality  String?
+  identityData Json?
+  cases        CasePerson[]
+  graphEntity  GraphEntity?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([familyName, givenName])
+}
+
+model CasePerson {
+  id            String            @id @default(uuid()) @db.Uuid
+  caseId        String            @db.Uuid
+  case          Case              @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  personId      String            @db.Uuid
+  person        Person            @relation(fields: [personId], references: [id], onDelete: Restrict)
+  participation CaseParticipation
+  notes         String?
+  createdAt     DateTime          @default(now())
+
+  @@unique([caseId, personId, participation])
+  @@index([caseId])
+  @@index([personId])
+}
+
+model Evidence {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  caseId               String                 @db.Uuid
+  case                 Case                   @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  uploadedById         String                 @db.Uuid
+  uploadedBy           User                   @relation("EvidenceUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  departmentId         String                 @db.Uuid
+  department           Department             @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  originalFilename     String
+  mediaType            String
+  byteSize             Int
+  checksumSha256       String
+  storageKey           String                 @unique
+  description          String?
+  verificationState    VerificationState      @default(PENDING)
+  relationshipEvidence RelationshipEvidence[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  @@index([caseId])
+  @@index([departmentId, verificationState])
+  @@index([uploadedById])
+  @@index([checksumSha256])
+}
+
+model GraphEntity {
+  id                 String              @id @default(uuid()) @db.Uuid
+  entityType         GraphEntityType
+  displayLabel       String
+  verificationState  VerificationState   @default(PENDING)
+  departmentId       String              @db.Uuid
+  department         Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  personId           String?             @unique @db.Uuid
+  person             Person?             @relation(fields: [personId], references: [id], onDelete: Cascade)
+  caseId             String?             @unique @db.Uuid
+  case               Case?               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  canonicalReference String?             @unique
+  outgoing           GraphRelationship[] @relation("RelationshipSource")
+  incoming           GraphRelationship[] @relation("RelationshipTarget")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([departmentId, entityType])
+  @@index([verificationState])
+}
+
+model GraphRelationship {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  sourceEntityId     String                 @db.Uuid
+  sourceEntity       GraphEntity            @relation("RelationshipSource", fields: [sourceEntityId], references: [id], onDelete: Restrict)
+  targetEntityId     String                 @db.Uuid
+  targetEntity       GraphEntity            @relation("RelationshipTarget", fields: [targetEntityId], references: [id], onDelete: Restrict)
+  relationshipType   String
+  strength           RelationshipStrength
+  evidenceConfidence EvidenceConfidence
+  verificationState  VerificationState      @default(PENDING)
+  interactionSummary String?
+  startsAt           DateTime?
+  endsAt             DateTime?
+  departmentId       String                 @db.Uuid
+  department         Department             @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdById        String                 @db.Uuid
+  createdBy          User                   @relation("RelationshipCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  verifiedById       String?                @db.Uuid
+  verifiedBy         User?                  @relation("RelationshipVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
+  verifiedAt         DateTime?
+  evidence           RelationshipEvidence[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([sourceEntityId, verificationState, strength])
+  @@index([targetEntityId, verificationState, strength])
+  @@index([departmentId])
+  @@index([createdById])
+  @@index([verifiedById])
+}
+
+model RelationshipEvidence {
+  id             String            @id @default(uuid()) @db.Uuid
+  relationshipId String            @db.Uuid
+  relationship   GraphRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  evidenceId     String            @db.Uuid
+  evidence       Evidence          @relation(fields: [evidenceId], references: [id], onDelete: Restrict)
+  sourceCaseId   String            @db.Uuid
+  sourceCase     Case              @relation(fields: [sourceCaseId], references: [id], onDelete: Restrict)
+  note           String?
+  createdAt      DateTime          @default(now())
+
+  @@unique([relationshipId, evidenceId])
+  @@index([relationshipId])
+  @@index([evidenceId])
+  @@index([sourceCaseId])
+}
+
+model AuditEvent {
+  id           String      @id @default(uuid()) @db.Uuid
+  actorId      String?     @db.Uuid
+  actor        User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  departmentId String?     @db.Uuid
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  action       String
+  targetType   String
+  targetId     String?
+  outcome      String
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([departmentId, createdAt])
+  @@index([action, createdAt])
+}

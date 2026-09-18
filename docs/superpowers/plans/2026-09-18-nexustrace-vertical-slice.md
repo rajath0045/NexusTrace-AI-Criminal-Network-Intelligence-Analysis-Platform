@@ -85,7 +85,7 @@ Expected: all commands exit 0.
 
 Verified on 2026-09-18 with ESLint 9.39.5 and the full Next.js React rule set enabled. `lint`, `typecheck`, and unit tests pass through the project scripts. The sandbox prevents Turbopack's CSS worker from binding its internal port, so the unchanged application was production-built successfully with the supported one-off `next build --webpack` fallback; no runtime or architecture setting was changed.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add package.json pnpm-lock.yaml next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs vitest.config.ts playwright.config.ts src .gitignore .env.example docker-compose.yml README.md
@@ -109,7 +109,7 @@ git commit -m "chore: scaffold NexusTrace application"
 - Produces: `prisma` singleton and `seedSyntheticDemoData()`.
 - Produces: enums for roles, case participation, case status, graph entity type, relationship strength, evidence confidence, and verification state.
 
-- [ ] **Step 1: Write a failing persistence test**
+- [x] **Step 1: Write a failing persistence test**
 
 ```ts
 it("persists a case-person relationship and graph entities in PostgreSQL", async () => {
@@ -122,33 +122,33 @@ it("persists a case-person relationship and graph entities in PostgreSQL", async
 });
 ```
 
-- [ ] **Step 2: Verify the database test fails**
+- [x] **Step 2: Verify the database test fails**
 
 Run: `pnpm vitest run --config vitest.config.ts tests/integration/database.test.ts`
 
 Expected: FAIL because the Prisma client and schema do not exist.
 
-- [ ] **Step 3: Define the normalized schema**
+- [x] **Step 3: Define the normalized schema**
 
 Use UUID identifiers, indexed foreign keys, unique FIR/case identifiers, explicit enums, created/updated timestamps, and provenance joins. Enforce relationship verifier/timestamp/source invariants in the service because they span optional fields and relation counts.
 
-- [ ] **Step 4: Add deterministic synthetic data**
+- [x] **Step 4: Add deterministic synthetic data**
 
 Seed three departments, one user per role, two cases, at least four people, evidence metadata, graph entities, and evidence-backed relationships. Hash the documented demo passwords with Argon2; never seed plaintext password fields.
 
-- [ ] **Step 5: Apply the migration and seed**
+- [x] **Step 5: Apply the migration and seed**
 
 Run: `pnpm prisma migrate dev --name init && pnpm prisma db seed`
 
 Expected: migration succeeds and the seed reports deterministic upserts.
 
-- [ ] **Step 6: Verify persistence**
+- [x] **Step 6: Verify persistence**
 
 Run: `pnpm vitest run tests/integration/database.test.ts`
 
 Expected: PASS against PostgreSQL.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add prisma prisma.config.ts src/server/db src/server/env.ts src/domain/model.ts tests/integration package.json pnpm-lock.yaml
