@@ -549,6 +549,7 @@ model InvestigationFinding {
   supportingRecordIds  Json
   evidenceIds          Json
   verificationLevels   Json
+  analysisSnapshot     Json?
   reviewStatus         FindingReviewStatus @default(UNREVIEWED)
   reviews              FindingReview[]
   updatedAt            DateTime            @updatedAt

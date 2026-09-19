@@ -132,3 +132,17 @@
 - Added department-scoped queue and explicit authenticated review APIs. Investigators and Department Users can disposition only authorized findings; Administrators retain authorized cross-department visibility. No review mutation can mark a lead as verified intelligence.
 - Extended the investigation workspace with effective review-state badges and explicit acknowledge, more-evidence, dismiss, and escalate actions. The controlled copilot remains read-only and now describes current human review state in its deterministic response.
 - Prisma schema validation/migration status, ESLint, TypeScript, 83 unit/component tests, 28 PostgreSQL integration tests, and the webpack production build pass.
+
+## 2026-09-19 — Task 12 investigation findings review operations complete
+
+- Added a persisted, cursor-paginated Findings Queue over real `InvestigationFinding` records with server-enforced filters for review status, finding type, Person, Incident, Case/FIR, authorized department, generated date range, and supporting-record verification state.
+- Findings now preserve their canonical Case/FIR linkage and a transparent analysis snapshot containing the bounded analysis window, historical baseline, observed values, deltas, summary metrics, and authorized source references. Re-analysis no longer changes the original generation timestamp or overwrites reviewed context.
+- Added a presentation-safe Finding Detail route and workspace panels for rationale, metrics, baseline comparison, communications, financial transactions, graph relationships, protected evidence/provenance links, supporting-record verification, current disposition, and immutable chronological review history.
+- Added explicit follow-up navigation and human disposition controls. A reviewer can start review, acknowledge, request more evidence, dismiss, or escalate with a structured reason and optional note; no action converts an investigative lead into verified intelligence.
+- Added authorized descriptive review metrics for totals, effective states, false-positive dispositions, average and median first-review turnaround, finding type distribution, and disposition trends. Metrics never rank personnel or alter analysis thresholds.
+- Extended the controlled Copilot with read-only persisted finding context and review-state questions while retaining the same server authorization boundary and preventing review-history mutation.
+- Strengthened source presentation by revalidating referenced communications, financial transactions, relationships, and evidence against the requesting actor before returning queue, detail, count, metric, pagination, or Copilot data.
+- Integrated eight Task 12 panels with the existing per-user Investigation workspace. Layouts remain isolated per user and Customize mode remains non-persistent.
+- Visually verified the production build at `/investigations`: authorized queue data, selected-finding snapshot and provenance, secure evidence links, follow-up controls, and clean browser console behavior all passed.
+- Prisma schema validation and migration status, ESLint, TypeScript, 85 unit/component tests, 30 PostgreSQL integration/authorization tests, and the webpack production build pass.
+- Next recommended phase: external-model integration behind the existing bounded, authorized, evidence-grounded analysis boundary. No external model integration is included in Task 12.

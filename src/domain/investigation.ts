@@ -14,6 +14,8 @@ export type InvestigationQuery = z.infer<typeof investigationQuerySchema>;
 export interface InvestigationEvidenceRef {
   id: string;
   verificationLevel: IncidentVerificationLevel;
+  filename?: string;
+  sourceVerificationState?: string;
 }
 
 export interface InvestigationFinding {
@@ -27,7 +29,11 @@ export interface InvestigationFinding {
   evidence: InvestigationEvidenceRef[];
   verificationLevels: IncidentVerificationLevel[];
   reviewStatus: FindingReviewStatus;
+  comparison?: FindingComparison;
 }
+
+export interface FindingComparison { observed: number; baseline: number; delta: number; percentageChange: number | null; unit: string }
+export interface FindingAnalysisSnapshot { capturedAt: string; baselineStartTime: string; baselineEndTime: string; metrics: InvestigationMetric[]; comparison: FindingComparison | null }
 
 export interface InvestigationMetric {
   label: string;
@@ -63,12 +69,17 @@ export const findingReviewInputSchema = z.object({
 
 export const findingQueueQuerySchema = z.object({
   status: z.enum(FindingReviewStatus).optional(),
-  category: z.string().trim().max(40).optional(),
+  category: z.enum(["COMMUNICATION", "FINANCIAL", "NETWORK", "CROSS_CASE"]).optional(),
+  caseFirNumber: z.string().trim().min(1).max(64).optional(),
   caseId: z.string().uuid().optional(),
   incidentId: z.string().uuid().optional(),
   personId: z.string().uuid().optional(),
+  departmentId: z.string().uuid().optional(),
   startTime: z.coerce.date().optional(),
   endTime: z.coerce.date().optional(),
+  verificationLevel: z.enum(["UNVERIFIED", "DEPARTMENT_VERIFIED", "CROSS_VERIFIED"]).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(25),
+  cursor: z.string().uuid().optional(),
 }).refine((value) => !value.startTime || !value.endTime || value.startTime <= value.endTime, { message: "The finding queue start must be before its end." });
 
 export type FindingReviewInput = z.infer<typeof findingReviewInputSchema>;
@@ -86,6 +97,17 @@ export interface FindingReviewView {
   createdAt: Date;
 }
 
+export interface FindingSupportingRecord {
+  id: string;
+  type: "COMMUNICATION" | "FINANCIAL" | "RELATIONSHIP";
+  label: string;
+  observedAt: Date | null;
+  verificationState: string;
+  description: string;
+  sourceEvidenceIds: string[];
+  graphFocusId?: string;
+}
+
 export interface PersistedFindingView extends InvestigationFinding {
   persistentId: string;
   findingKey: string;
@@ -95,10 +117,32 @@ export interface PersistedFindingView extends InvestigationFinding {
   incidentNumber: string;
   caseId: string | null;
   caseFirNumber: string | null;
+  windowStart: Date;
+  windowEnd: Date;
   generatedAt: Date;
   reviews: FindingReviewView[];
+  supportingRecords?: FindingSupportingRecord[];
+  snapshot: FindingAnalysisSnapshot | null;
+}
+
+export interface FindingQueuePage { items: PersistedFindingView[]; nextCursor: string | null; }
+
+export interface FindingQualityMetrics {
+  total: number;
+  reviewed: number;
+  unreviewed: number;
+  acknowledged: number;
+  dismissed: number;
+  falsePositive: number;
+  needsMoreEvidence: number;
+  escalated: number;
+  averageTurnaroundHours: number | null;
+  medianTurnaroundHours: number | null;
+  byType: Array<{ category: string; count: number }>;
+  dispositionTrend: Array<{ date: string; status: string; count: number }>;
 }
 
 export const copilotQuestionSchema = investigationQuerySchema.extend({
   question: z.string().trim().min(3).max(600),
+  findingId: z.string().uuid().optional(),
 });

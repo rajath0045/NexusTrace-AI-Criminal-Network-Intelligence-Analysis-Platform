@@ -79,6 +79,14 @@ export function buildDeterministicAnalysis(data: InvestigationContextData, befor
     findings.push(lead("FINANCIAL", "financial-volume", "Transaction exceeds recent baseline", `${formatCurrency(largest.amount ?? 0, largest.currency ?? "INR")} is at least three times the ${formatCurrency(baselineMedian, largest.currency ?? "INR")} median of the preceding comparable window. Amount alone does not establish unlawful activity.`, [largest]));
   }
   const knownFinanceContacts = new Set(baselineFinance.map((record) => counterpart(record, data.person.entityIds).id));
+  for (const finding of findings) {
+    const values = finding.id === "communication-spike"
+      ? { observed: currentCommunications.length, baseline: baselineCommunications.length, unit: "records" }
+      : finding.id === "financial-volume" && largest && baselineMedian !== null
+        ? { observed: largest.amount ?? 0, baseline: baselineMedian, unit: currency }
+        : null;
+    if (values) finding.comparison = { ...values, delta: values.observed - values.baseline, percentageChange: values.baseline === 0 ? null : (values.observed - values.baseline) / values.baseline * 100 };
+  }
   const newFinanceContacts = currentFinance.filter((record) => !knownFinanceContacts.has(counterpart(record, data.person.entityIds).id));
   if (newFinanceContacts.length) findings.push(lead("FINANCIAL", "new-financial-counterparty", "New financial counterparty in selected time window", `${[...new Set(newFinanceContacts.map((record) => counterpart(record, data.person.entityIds).label))].join(", ")} has no corresponding financial activity in the preceding comparable window.`, newFinanceContacts));
 

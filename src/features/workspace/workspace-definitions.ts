@@ -90,6 +90,14 @@ const investigationWidgets: readonly WorkspaceWidgetDefinition[] = [
   { id: "cross-case-links", label: "Cross-case context", size: "wide", capability: "INVESTIGATION_ANALYZE" },
   { id: "investigation-findings", label: "Review leads", size: "lg", capability: "INVESTIGATION_ANALYZE" },
   { id: "investigation-copilot", label: "Investigation copilot", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "findings-queue", label: "Findings queue", size: "lg", capability: "INVESTIGATION_ANALYZE" },
+  { id: "finding-detail", label: "Finding detail", size: "lg", capability: "INVESTIGATION_ANALYZE" },
+  { id: "review-history", label: "Review history", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "supporting-evidence", label: "Supporting evidence", size: "lg", capability: "INVESTIGATION_ANALYZE" },
+  { id: "follow-up-actions", label: "Follow-up actions", size: "wide", capability: "FINDING_REVIEW" },
+  { id: "review-metrics", label: "Review metrics", size: "wide", capability: "INVESTIGATION_ANALYZE" },
+  { id: "escalated-findings", label: "Escalated findings", size: "sm", capability: "INVESTIGATION_ANALYZE" },
+  { id: "needs-more-evidence", label: "Needs more evidence", size: "sm", capability: "INVESTIGATION_ANALYZE" },
 ];
 
 export const workspaceWidgetDefinitions: Readonly<
