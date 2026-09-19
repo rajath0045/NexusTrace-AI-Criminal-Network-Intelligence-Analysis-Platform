@@ -11,6 +11,9 @@ import {
   Menu,
   Network,
   Radar,
+  ScrollText,
+  Search,
+  ShieldCheck,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -29,7 +32,10 @@ export type ShellIcon =
   | "cases"
   | "incidents"
   | "network"
-  | "investigation";
+  | "investigation"
+  | "search"
+  | "administration"
+  | "audit";
 
 export interface ShellNavigationItem {
   href: string;
@@ -49,6 +55,9 @@ const icons: Record<ShellIcon, LucideIcon> = {
   incidents: Activity,
   network: Network,
   investigation: Radar,
+  search: Search,
+  administration: ShieldCheck,
+  audit: ScrollText,
 };
 
 function formatRole(role: Actor["role"]): string {

@@ -14,6 +14,9 @@ const navigation: readonly (ShellNavigationItem & { capability: Capability })[] 
   { href: "/incidents", label: "Incidents", icon: "incidents", capability: "CASE_VIEW" },
   { href: "/network", label: "Network", icon: "network", capability: "RELATIONSHIP_SUGGEST" },
   { href: "/investigations", label: "Investigation", icon: "investigation", capability: "INVESTIGATION_ANALYZE" },
+  { href: "/search", label: "Search", icon: "search", capability: "CASE_VIEW" },
+  { href: "/admin", label: "Administration", icon: "administration", capability: "ADMINISTER" },
+  { href: "/audit", label: "Audit", icon: "audit", capability: "ADMINISTER" },
 ];
 
 export function AppShell({ actor, children }: AppShellProps) {

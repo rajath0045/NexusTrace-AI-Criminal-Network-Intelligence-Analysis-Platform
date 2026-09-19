@@ -80,7 +80,7 @@ describe("AppShellClient", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Open navigation" }));
-    expect(screen.getByLabelText("Mobile navigation")).toBeVisible();
+    await waitFor(() => expect(screen.getByLabelText("Mobile navigation")).toBeVisible());
     expect(screen.getAllByText("Aditi Rao").length).toBeGreaterThan(0);
 
     await user.keyboard("{Escape}");
