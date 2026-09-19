@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EvidenceConfidence,
+  FindingReviewStatus,
   GraphEntityType,
   IncidentVerificationLevel,
   LocationObservationType,
@@ -14,7 +15,7 @@ import type { SerializedGeographicProjection } from "./geographic-view-model";
 import { NetworkExplorer } from "./network-explorer";
 
 vi.mock("./geographic-network-map", () => ({
-  GeographicNetworkMap: ({ onEntitySelect, onConnectionSelect, heatmap, showNetwork, showObservations }: { onEntitySelect: (id: string) => void; onConnectionSelect: (id: string) => void; heatmap: boolean; showNetwork: boolean; showObservations: boolean }) => <div aria-label="Geographic network map"><output data-testid="layer-state">{`${showNetwork}-${showObservations}-${heatmap}`}</output><button type="button" onClick={() => onEntitySelect("vehicle")}>Select vehicle marker</button><button type="button" onClick={() => onConnectionSelect("person:vehicle")}>Select activity badge</button></div>,
+  GeographicNetworkMap: ({ onEntitySelect, onConnectionSelect, heatmap, showNetwork, showObservations }: { onEntitySelect: (id: string) => void; onConnectionSelect: (id: string) => void; heatmap: boolean; showNetwork: boolean; showObservations: boolean }) => <div aria-label="Geographic network map"><output data-testid="layer-state">{`${showNetwork}-${showObservations}-${heatmap}`}</output><button type="button" onClick={() => onEntitySelect("vehicle")}>Select vehicle marker</button><button type="button" onClick={() => onEntitySelect("person")}>Select person marker</button><button type="button" onClick={() => onConnectionSelect("person:vehicle")}>Select activity badge</button></div>,
 }));
 
 vi.mock("./network-canvas", () => ({
@@ -41,7 +42,7 @@ const projection: SerializedGeographicProjection = {
   observations: [observation("obs-a", "person", GraphEntityType.Person, "Aditi Rao", 77.59), observation("obs-b", "vehicle", GraphEntityType.Vehicle, "KA-01-XX-1234", 77.66)],
   activities: [],
   connections: [{
-    id: "person:vehicle", sourceEntityId: "person", targetEntityId: "vehicle", sourceLabel: "Aditi Rao", targetLabel: "KA-01-XX-1234", sourceObservation: observation("obs-a", "person", GraphEntityType.Person, "Aditi Rao", 77.59), targetObservation: observation("obs-b", "vehicle", GraphEntityType.Vehicle, "KA-01-XX-1234", 77.66), strength: RelationshipStrength.Primary, verification: IncidentVerificationLevel.DepartmentVerified, relationshipIds: ["edge-1"], counts: { calls: 1, messages: 0, emails: 0, digitalContacts: 0, financial: 0, relationships: 1 }, records: [{ id: "COM-108", kind: "COMMUNICATION", label: "CALL · COM-108", occurredAt: "2026-09-18T20:45:00.000Z", interactionCount: 1, verification: IncidentVerificationLevel.DepartmentVerified, sourceEvidenceId: "evidence-1", caseId: "case-1", caseFirNumber: "FIR-212", sourceLocation: { status: "KNOWN", eventAt: "2026-09-18T20:45:00.000Z", temporalDistanceSeconds: 180, observation: observation("obs-a", "person", GraphEntityType.Person, "Aditi Rao", 77.59) }, destinationLocation: { status: "UNKNOWN", eventAt: "2026-09-18T20:45:00.000Z", temporalDistanceSeconds: null, observation: null }, durationSeconds: 272, amount: null, currency: null }],
+    id: "person:vehicle", sourceEntityId: "person", targetEntityId: "vehicle", sourceLabel: "Aditi Rao", targetLabel: "KA-01-XX-1234", sourceObservation: observation("obs-a", "person", GraphEntityType.Person, "Aditi Rao", 77.59), targetObservation: observation("obs-b", "vehicle", GraphEntityType.Vehicle, "KA-01-XX-1234", 77.66), strength: RelationshipStrength.Primary, verification: IncidentVerificationLevel.DepartmentVerified, relationshipIds: ["edge-1"], counts: { calls: 1, messages: 0, emails: 0, digitalContacts: 0, financial: 0, relationships: 1 }, records: [{ id: "COM-108", kind: "COMMUNICATION", label: "CALL · COM-108", occurredAt: "2026-09-18T20:45:00.000Z", interactionCount: 1, verification: IncidentVerificationLevel.DepartmentVerified, sourceEvidenceId: "evidence-1", caseId: "case-1", caseFirNumber: "FIR-212", sourceLocation: { status: "KNOWN", eventAt: "2026-09-18T20:45:00.000Z", temporalDistanceSeconds: 180, observation: observation("obs-a", "person", GraphEntityType.Person, "Aditi Rao", 77.59) }, destinationLocation: { status: "UNKNOWN", eventAt: "2026-09-18T20:45:00.000Z", temporalDistanceSeconds: null, observation: null }, durationSeconds: 272, amount: null, currency: null }, { id: "edge-1", kind: "RELATIONSHIP", label: "ASSOCIATED_WITH", occurredAt: "2026-09-17T10:00:00.000Z", interactionCount: 3, verification: VerificationState.Verified, sourceEvidenceId: null, caseId: null, caseFirNumber: null, sourceLocation: null, destinationLocation: null, durationSeconds: null, amount: null, currency: null }],
   }],
   timeline: [{ id: "time-1", type: "COMMUNICATION", timestamp: "2026-09-18T20:45:00.000Z", title: "Call COM-108", description: "Authorized call", sourceRecordType: "COMMUNICATION", sourceRecordId: "COM-108", caseId: "case-1", incidentId: null, personIds: ["person"], evidenceId: "evidence-1" }],
   findings: [],
@@ -49,11 +50,14 @@ const projection: SerializedGeographicProjection = {
   generatedAt: "2026-09-19T00:00:00.000Z",
 };
 
+const actions = { canSubmitIncident: true, canCreateIncident: false, canReviewIncident: false, canCrossVerify: false, canReviewFinding: true };
+const renderExplorer = (value: SerializedGeographicProjection = projection, actionSet = actions) => render(<NetworkExplorer initialProjection={value} initialLayoutItems={[]} actions={actionSet} />);
+
 describe("NetworkExplorer", () => {
   beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
 
   it("starts with the clear default scope and a geographic primary surface", () => {
-    render(<NetworkExplorer initialProjection={projection} initialLayoutItems={[]} />);
+    renderExplorer();
     expect(screen.getByRole("button", { name: "Primary relationships" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Secondary relationships" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "1 hop" })).toHaveAttribute("aria-pressed", "true");
@@ -63,7 +67,7 @@ describe("NetworkExplorer", () => {
   it("uses server filtering for relationship tiers, traversal, and verification", async () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => projection } as Response);
-    render(<NetworkExplorer initialProjection={projection} initialLayoutItems={[]} />);
+    renderExplorer();
     await user.click(screen.getByRole("button", { name: "Secondary relationships" }));
     await user.click(screen.getByRole("button", { name: "3 hops" }));
     await user.click(screen.getByRole("button", { name: "Pending relationships" }));
@@ -75,7 +79,7 @@ describe("NetworkExplorer", () => {
   it("uses one shared focus across map and relationship views", async () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ ...projection, focusEntity: vehicle, graph: { ...projection.graph, focusEntity: vehicle } }) } as Response);
-    render(<NetworkExplorer initialProjection={projection} initialLayoutItems={[]} />);
+    renderExplorer();
     await user.click(screen.getByRole("button", { name: "Select vehicle marker" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("focus=vehicle"), expect.anything()));
     await user.click(screen.getByRole("button", { name: /Relationship/ }));
@@ -85,19 +89,19 @@ describe("NetworkExplorer", () => {
 
   it("shows temporal call provenance and never fabricates an unknown endpoint", async () => {
     const user = userEvent.setup();
-    render(<NetworkExplorer initialProjection={projection} initialLayoutItems={[]} />);
+    renderExplorer();
     await user.click(screen.getByRole("button", { name: "Select activity badge" }));
     expect(screen.getByText(/Duration 4m 32s/)).toBeVisible();
     expect(screen.getAllByText("Location X").length).toBeGreaterThan(0);
     expect(screen.getByText("LOCATION UNKNOWN")).toBeVisible();
-    expect(screen.getByText("COM-108")).toBeVisible();
-    expect(screen.getByRole("link", { name: "Source evidence" })).toHaveAttribute("href", "/api/evidence/evidence-1");
+    expect(screen.getByText(/Source record: COMMUNICATION · COM-108/)).toBeVisible();
+    expect(screen.getAllByRole("link", { name: /source evidence|Inspect evidence/i })[0]).toHaveAttribute("href", "/api/evidence/evidence-1");
   });
 
   it("constrains the server projection from a timeline selection", async () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => projection } as Response);
-    render(<NetworkExplorer initialProjection={projection} initialLayoutItems={[]} />);
+    renderExplorer();
     await user.click(screen.getByRole("button", { name: /Call COM-108/ }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("startTime="), expect.anything()));
     expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain("endTime=");
@@ -105,9 +109,62 @@ describe("NetworkExplorer", () => {
 
   it("keeps layer toggles local to the map", async () => {
     const user = userEvent.setup();
-    render(<NetworkExplorer initialProjection={projection} initialLayoutItems={[]} />);
+    renderExplorer();
     await user.click(screen.getByRole("button", { name: "Activity heatmap" }));
     expect(screen.getByTestId("layer-state")).toHaveTextContent("true-true-true");
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("shows compact selected-entity investigation context", () => {
+    renderExplorer();
+    const panel = screen.getByText("Selected entity").closest("section")!;
+    expect(within(panel).getByText("Primary · Associated With")).toBeVisible();
+    expect(within(panel).getByText("Visible connections").parentElement).toHaveTextContent("1");
+    expect(within(panel).getAllByText("FIR-212").length).toBeGreaterThan(0);
+    expect(within(panel).getByRole("link", { name: "Inspect evidence" })).toHaveAttribute("href", "/api/evidence/evidence-1");
+  });
+
+  it("loads authorized relationship provenance for why-shown details", async () => {
+    const user = userEvent.setup();
+    const detail = {
+      ...projection.graph.edges[0], sourceEntity: person, targetEntity: vehicle, departmentName: "Cyber Crime Unit", createdByName: "Analyst Rao", verifiedByName: "Supervisor Nair", verifiedAt: "2026-09-18T12:00:00.000Z",
+      provenance: [{ id: "source-1", evidenceId: "evidence-2", evidenceFilename: "tower-export.csv", evidenceVerificationState: VerificationState.Verified, sourceCaseId: "case-1", sourceFirNumber: "FIR-212", sourceCaseTitle: "Authorized case", note: "Corroborating source" }],
+    };
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => detail } as Response);
+    renderExplorer();
+    await user.click(screen.getByRole("button", { name: "Relationship" }));
+    await user.click(screen.getByRole("button", { name: "Select relationship edge" }));
+    expect(await screen.findByText("Cyber Crime Unit · Analyst Rao")).toBeVisible();
+    expect(screen.getByRole("link", { name: "tower-export.csv" })).toHaveAttribute("href", "/api/evidence/evidence-2");
+    expect(screen.getByText("Reported interactions")).toBeVisible();
+  });
+
+  it("shows finding timestamps, source counts, and review affordances", () => {
+    renderExplorer({ ...projection, findings: [{ id: "finding-1", title: "Communication frequency increased", category: "COMMUNICATION", reviewStatus: FindingReviewStatus.Unreviewed, generatedAt: "2026-09-18T22:00:00.000Z", caseId: "case-1", caseFirNumber: "FIR-212", supportingRecordCount: 4, evidenceCount: 2 }] });
+    expect(screen.getByText(/Generated .*4 source records · 2 evidence items/)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Review source basis" })).toHaveAttribute("href", "/investigations");
+  });
+
+  it("ignores a stale focus response when a newer focus request has completed", async () => {
+    const user = userEvent.setup();
+    let resolveVehicle!: (value: Response) => void;
+    let resolvePerson!: (value: Response) => void;
+    vi.mocked(fetch).mockImplementation(async (input) => await new Promise<Response>((resolve) => {
+      if (String(input).includes("focus=vehicle")) resolveVehicle = resolve;
+      else resolvePerson = resolve;
+    }));
+    renderExplorer();
+    await user.click(screen.getByRole("button", { name: "Select vehicle marker" }));
+    await user.click(screen.getByRole("button", { name: "Select person marker" }));
+    await act(async () => resolvePerson({ ok: true, json: async () => projection } as Response));
+    await waitFor(() => expect(within(screen.getByText("Shared focus").parentElement!).getByText("Aditi Rao")).toBeVisible());
+    await act(async () => resolveVehicle({ ok: true, json: async () => ({ ...projection, focusEntity: vehicle, graph: { ...projection.graph, focusEntity: vehicle } }) } as Response));
+    expect(within(screen.getByText("Shared focus").parentElement!).getByText("Aditi Rao")).toBeVisible();
+  });
+
+  it("shows only actions granted to the current role", () => {
+    renderExplorer();
+    expect(screen.getByRole("link", { name: "Submit incident contribution" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Review cross-verification" })).not.toBeInTheDocument();
   });
 });

@@ -94,6 +94,58 @@ function latestObservationByEntity(observations: LocationObservationView[]): Map
   return positions;
 }
 
+function mergeObservationTimeline(
+  graph: GraphNeighborhood,
+  timeline: TimelineItem[],
+  observations: LocationObservationView[],
+  activities: GeolocatedActivityRecord[],
+  startTime: Date,
+  endTime: Date,
+): TimelineItem[] {
+  const entityById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const activityById = new Map(activities.map((activity) => [activity.id, activity]));
+  const eligible = observations.filter((observation) =>
+    temporalPresenceObservationTypes.includes(observation.observationType as typeof temporalPresenceObservationTypes[number])
+    && observation.observedAt >= startTime
+    && observation.observedAt <= endTime,
+  );
+  const observationsBySource = new Map<string, LocationObservationView[]>();
+  for (const observation of eligible) {
+    const key = `${observation.sourceRecordType}:${observation.sourceRecordId}`;
+    observationsBySource.set(key, [...(observationsBySource.get(key) ?? []), observation]);
+  }
+  const representedObservationIds = new Set<string>();
+  const enrichedTimeline = timeline.map((item) => {
+    const linked = observationsBySource.get(`${item.sourceRecordType}:${item.sourceRecordId}`) ?? [];
+    if (linked.length === 0) return item;
+    linked.forEach((observation) => representedObservationIds.add(observation.id));
+    const geographicContext = linked.map((observation) =>
+      `${observation.entityLabel} at ${observation.locationLabel} (${observation.observationType.replaceAll("_", " ")}; ${observation.verificationLevel.replaceAll("_", " ")}; observation ${observation.id})`,
+    ).join(" | ");
+    return { ...item, description: `${item.description} · Geographic context: ${geographicContext}` };
+  });
+  const standalone = eligible
+    .filter((observation) => !representedObservationIds.has(observation.id))
+    .map((observation): TimelineItem => {
+      const entity = entityById.get(observation.graphEntityId);
+      const activity = activityById.get(observation.sourceRecordId);
+      return {
+        id: `location:${observation.id}`,
+        type: "LOCATION",
+        timestamp: observation.observedAt,
+        title: `${observation.entityLabel}: ${observation.observationType.replaceAll("_", " ")}`,
+        description: `${observation.locationLabel}${observation.context ? ` · ${observation.context}` : ""} · Source ${observation.sourceRecordType} ${observation.sourceRecordId} · ${observation.verificationLevel.replaceAll("_", " ")}`,
+        sourceRecordType: "LOCATION_OBSERVATION",
+        sourceRecordId: observation.id,
+        caseId: observation.sourceRecordType === "CASE" ? observation.sourceRecordId : activity?.caseId ?? null,
+        incidentId: observation.sourceRecordType === "INCIDENT" ? observation.sourceRecordId : entity?.canonicalRecord?.type === "INCIDENT" ? entity.canonicalRecord.id : activity?.incidentId ?? null,
+        personIds: entity?.canonicalRecord?.type === "PERSON" ? [entity.canonicalRecord.id] : [],
+        evidenceId: observation.sourceEvidenceId,
+      };
+    });
+  return [...enrichedTimeline, ...standalone];
+}
+
 function bundleConnections(
   graph: GraphNeighborhood,
   activities: GeolocatedActivityRecord[],
@@ -251,6 +303,9 @@ export class GeographyService {
       const scope = canonical.type === "PERSON" ? { personId: canonical.id } : canonical.type === "CASE" ? { caseId: canonical.id } : { incidentId: canonical.id };
       timeline = await this.timelineReader(actor, { ...scope, startTime: effectiveStart, endTime: effectiveEnd, types: ["ALL"] });
     }
+    timeline = mergeObservationTimeline(graph, timeline, observations, activities, effectiveStart, effectiveEnd)
+      .sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime() || left.id.localeCompare(right.id))
+      .slice(0, 500);
     const connections = bundleConnections(graph, activities, observations);
     const evidenceIds = new Set(activities.flatMap((item) => item.sourceEvidenceId ? [item.sourceEvidenceId] : []));
     const caseIds = new Set(activities.flatMap((item) => item.caseId ? [item.caseId] : []));

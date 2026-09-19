@@ -38,7 +38,8 @@ describe("GeographicNetworkMap failure states", () => {
 
   it("explains when the investigation has no authorized geographic observations", () => {
     renderMap({ projection: { ...projection, observations: [] } });
-    expect(screen.getByText("No geographic observations are available for the current investigation.")).toBeVisible();
+    expect(screen.getByText("NO GEOLOCATION")).toBeVisible();
+    expect(screen.getByText(/No geographic observations are available for the selected entity and time window/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Switch to Relationship View" })).toBeVisible();
   });
 

@@ -151,6 +151,8 @@ export interface GeographicFindingSummary {
   generatedAt: Date;
   caseId: string | null;
   caseFirNumber: string | null;
+  supportingRecordCount: number;
+  evidenceCount: number;
 }
 
 export interface GeographicProjection {

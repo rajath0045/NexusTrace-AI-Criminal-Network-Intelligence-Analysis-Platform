@@ -1,12 +1,13 @@
 "use client";
 
 import { Layers3, LocateFixed, Map, Network, SlidersHorizontal, X } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GraphEntityType, RelationshipStrength, VerificationState } from "@/domain/model";
 import type { WorkspaceLayoutItem } from "@/domain/workspace";
 import { WorkspaceGrid } from "@/features/workspace/workspace-grid";
 import { GeographicNetworkMap } from "./geographic-network-map";
 import type { SerializedGeographicConnection, SerializedGeographicProjection } from "./geographic-view-model";
+import type { SerializedRelationshipDetail } from "./graph-view-model";
 import { NetworkCanvas } from "./network-canvas";
 import {
   ActivityQueue,
@@ -24,6 +25,13 @@ import {
 interface NetworkExplorerProps {
   initialProjection: SerializedGeographicProjection;
   initialLayoutItems: WorkspaceLayoutItem[];
+  actions: {
+    canSubmitIncident: boolean;
+    canCreateIncident: boolean;
+    canReviewIncident: boolean;
+    canCrossVerify: boolean;
+    canReviewFinding: boolean;
+  };
 }
 
 type ViewMode = "map" | "relationship";
@@ -50,7 +58,7 @@ function connectionForRelationship(projection: SerializedGeographicProjection, r
   return projection.connections.find((connection) => connection.relationshipIds.includes(relationshipId)) ?? null;
 }
 
-export function NetworkExplorer({ initialProjection, initialLayoutItems }: NetworkExplorerProps) {
+export function NetworkExplorer({ initialProjection, initialLayoutItems, actions }: NetworkExplorerProps) {
   const [projection, setProjection] = useState(initialProjection);
   const [view, setView] = useState<ViewMode>("map");
   const [strengths, setStrengths] = useState<RelationshipStrength[]>(initialProjection.graph.activeFilters.strengths);
@@ -69,6 +77,10 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems }: Netwo
   const [recenterVersion, setRecenterVersion] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [relationshipDetails, setRelationshipDetails] = useState<Record<string, SerializedRelationshipDetail>>({});
+  const [provenanceLoading, setProvenanceLoading] = useState(false);
+  const projectionRequestId = useRef(0);
+  const projectionAbortController = useRef<AbortController | null>(null);
 
   const availableRelationshipTypes = useMemo(() => [...new Set(projection.graph.edges.map((edge) => edge.relationshipType))].sort(), [projection.graph.edges]);
   const filteredEdges = useMemo(() => relationshipTypes.length === 0 ? projection.graph.edges : projection.graph.edges.filter((edge) => relationshipTypes.includes(edge.relationshipType)), [projection.graph.edges, relationshipTypes]);
@@ -76,6 +88,27 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems }: Netwo
   const filteredConnections = useMemo(() => relationshipTypes.length === 0 ? projection.connections : projection.connections.filter((connection) => connection.relationshipIds.length === 0 || connection.relationshipIds.some((id) => visibleConnectionIds.has(id))), [projection.connections, relationshipTypes.length, visibleConnectionIds]);
   const mapProjection = useMemo(() => ({ ...projection, connections: filteredConnections }), [filteredConnections, projection]);
   const selectedConnection = useMemo(() => projection.connections.find((item) => item.id === selectedConnectionId) ?? null, [projection.connections, selectedConnectionId]);
+
+  useEffect(() => () => projectionAbortController.current?.abort(), []);
+
+  useEffect(() => {
+    const relationshipIds = selectedConnection?.relationshipIds ?? [];
+    if (relationshipIds.length === 0) return;
+    const controller = new AbortController();
+    void Promise.all(relationshipIds.map(async (relationshipId) => {
+      const response = await fetch(`/api/relationships/${relationshipId}`, { credentials: "same-origin", signal: controller.signal });
+      if (!response.ok) return null;
+      return await response.json() as SerializedRelationshipDetail;
+    })).then((details) => {
+      if (controller.signal.aborted) return;
+      setRelationshipDetails(Object.fromEntries(details.flatMap((detail) => detail ? [[detail.id, detail]] : [])));
+    }).catch((loadError: unknown) => {
+      if (!(loadError instanceof DOMException && loadError.name === "AbortError")) setRelationshipDetails({});
+    }).finally(() => {
+      if (!controller.signal.aborted) setProvenanceLoading(false);
+    });
+    return () => controller.abort();
+  }, [selectedConnection]);
 
   const requestProjection = useCallback(async (overrides: Partial<{ focus: string; hops: 1 | 2 | 3; strengths: RelationshipStrength[]; verificationStates: VerificationState[]; startTime: string; endTime: string }> = {}) => {
     const query = {
@@ -86,26 +119,37 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems }: Netwo
       startTime: overrides.startTime ?? timeWindow.startTime,
       endTime: overrides.endTime ?? timeWindow.endTime,
     };
+    const requestId = projectionRequestId.current + 1;
+    projectionRequestId.current = requestId;
+    projectionAbortController.current?.abort();
+    const controller = new AbortController();
+    projectionAbortController.current = controller;
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(projectionUrl(query), { credentials: "same-origin" });
+      const response = await fetch(projectionUrl(query), { credentials: "same-origin", signal: controller.signal });
       if (!response.ok) throw new Error("Projection request failed");
       const next = await response.json() as SerializedGeographicProjection;
+      if (requestId !== projectionRequestId.current || controller.signal.aborted) return;
       setProjection(next);
       setSelectedEntityId(next.focusEntity.id);
       setSelectedConnectionId(null);
+      setRelationshipDetails({});
+      setProvenanceLoading(false);
       setFitVersion((value) => value + 1);
-    } catch {
+    } catch (requestError) {
+      if (controller.signal.aborted || requestId !== projectionRequestId.current || requestError instanceof DOMException && requestError.name === "AbortError") return;
       setError("The authorized geographic network could not be loaded. Your current view is unchanged.");
     } finally {
-      setLoading(false);
+      if (requestId === projectionRequestId.current) setLoading(false);
     }
   }, [hops, projection.focusEntity.id, strengths, timeWindow.endTime, timeWindow.startTime, verificationStates]);
 
   const pivotFocus = useCallback((entityId: string) => {
     setSelectedEntityId(entityId);
     setSelectedConnectionId(null);
+    setRelationshipDetails({});
+    setProvenanceLoading(false);
     void requestProjection({ focus: entityId });
   }, [requestProjection]);
 
@@ -133,7 +177,13 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems }: Netwo
     setTimeWindow({ startTime, endTime });
     void requestProjection({ startTime, endTime });
   };
-  const selectConnection = (id: string) => { setSelectedConnectionId(id); setSelectedEntityId(null); };
+  const selectConnection = (id: string) => {
+    const connection = projection.connections.find((item) => item.id === id);
+    setSelectedConnectionId(id);
+    setSelectedEntityId(null);
+    setRelationshipDetails({});
+    setProvenanceLoading(Boolean(connection?.relationshipIds.length));
+  };
   const selectRelationship = (id: string) => {
     const connection = connectionForRelationship(projection, id);
     if (connection) selectConnection(connection.id);
@@ -165,17 +215,17 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems }: Netwo
       </aside>
 
       <main className="network-primary-surface" aria-busy={loading}>
-        <div className="network-surface-toolbar"><div className="network-view-switch" role="group" aria-label="Network view"><button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}><Map aria-hidden="true" /> Geographic</button><button type="button" aria-pressed={view === "relationship"} onClick={() => setView("relationship")}><Network aria-hidden="true" /> Relationship</button></div><div className="network-map-actions"><button type="button" onClick={() => setFitVersion((value) => value + 1)}>Fit</button><button type="button" onClick={() => setRecenterVersion((value) => value + 1)}><LocateFixed aria-hidden="true" /> Recenter</button><button type="button" onClick={() => { setSelectedEntityId(projection.focusEntity.id); setSelectedConnectionId(null); setRecenterVersion((value) => value + 1); }}>Clear focus</button><button type="button" aria-expanded={legendOpen} onClick={() => setLegendOpen((value) => !value)}><Layers3 aria-hidden="true" /> Legend</button></div></div>
+        <div className="network-surface-toolbar"><div className="network-view-switch" role="group" aria-label="Network view"><button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}><Map aria-hidden="true" /> Geographic</button><button type="button" aria-pressed={view === "relationship"} onClick={() => setView("relationship")}><Network aria-hidden="true" /> Relationship</button></div><div className="network-map-actions"><button type="button" onClick={() => setFitVersion((value) => value + 1)}>Fit</button><button type="button" onClick={() => setRecenterVersion((value) => value + 1)}><LocateFixed aria-hidden="true" /> Recenter</button><button type="button" onClick={() => { setSelectedEntityId(projection.focusEntity.id); setSelectedConnectionId(null); setRelationshipDetails({}); setProvenanceLoading(false); setRecenterVersion((value) => value + 1); }}>Clear focus</button><button type="button" aria-expanded={legendOpen} onClick={() => setLegendOpen((value) => !value)}><Layers3 aria-hidden="true" /> Legend</button></div></div>
         {legendOpen ? <GraphLegend /> : null}
         {error ? <p className="network-alert" role="alert">{error}</p> : null}
         {loading ? <div className="network-loading">Refreshing authorized geographic projection…</div> : null}
         <section className="network-investigation-canvas">
           <div className="network-canvas-header"><div><span className="eyebrow">Shared focus</span><strong>{projection.focusEntity.displayLabel}</strong><span>{titleCase(projection.focusEntity.entityType)} · {hops} hop{hops === 1 ? "" : "s"}</span></div><p className="network-canvas-instruction">Select an entity to pivot the map, relationship graph, timeline, and analysis panels together.</p></div>
-          {view === "map" ? <GeographicNetworkMap projection={mapProjection} selectedEntityId={selectedEntityId} selectedConnectionId={selectedConnectionId} visibleEntityTypes={entityTypes} showNetwork={layers.network} showObservations={layers.observations} heatmap={layers.heatmap} fitVersion={fitVersion} recenterVersion={recenterVersion} onEntitySelect={pivotFocus} onConnectionSelect={selectConnection} onSwitchToRelationship={() => setView("relationship")} /> : filteredEdges.length === 0 ? <div className="network-empty"><strong>No authorized relationships match these filters.</strong><span>Enable another relationship type, tier, verification state, or traversal depth.</span></div> : <NetworkCanvas focusEntityId={projection.focusEntity.id} nodes={projection.graph.nodes} edges={filteredEdges} selectedNodeId={selectedEntityId} selectedEdgeId={selectedConnection?.relationshipIds[0] ?? null} focusMode={selectedEntityId !== null && selectedEntityId !== projection.focusEntity.id} fitVersion={fitVersion} recenterVersion={recenterVersion} onNodeSelect={pivotFocus} onEdgeSelect={selectRelationship} />}
+          {view === "map" ? <GeographicNetworkMap projection={mapProjection} selectedEntityId={selectedEntityId} selectedConnectionId={selectedConnectionId} visibleEntityTypes={entityTypes} showNetwork={layers.network} showObservations={layers.observations} heatmap={layers.heatmap} fitVersion={fitVersion} recenterVersion={recenterVersion} onEntitySelect={pivotFocus} onConnectionSelect={selectConnection} onSwitchToRelationship={() => setView("relationship")} /> : filteredEdges.length === 0 ? <div className="network-empty"><strong>NO RELATIONSHIPS</strong><span>No relationships match the current filters. Enable another relationship type, tier, verification state, or traversal depth.</span></div> : <NetworkCanvas focusEntityId={projection.focusEntity.id} nodes={projection.graph.nodes} edges={filteredEdges} selectedNodeId={selectedEntityId} selectedEdgeId={selectedConnection?.relationshipIds[0] ?? null} focusMode={selectedEntityId !== null && selectedEntityId !== projection.focusEntity.id} fitVersion={fitVersion} recenterVersion={recenterVersion} onNodeSelect={pivotFocus} onEdgeSelect={selectRelationship} />}
         </section>
       </main>
 
-      <aside className="network-analysis-rail network-analysis-right"><SelectedEntityPanel projection={projection} entityId={selectedEntityId} onFocus={pivotFocus} /><ConnectionDetailsPanel connection={selectedConnection} /><AnalystContext projection={projection} /><InvestigationActions focusType={projection.focusEntity.entityType} /></aside>
+      <aside className="network-analysis-rail network-analysis-right"><SelectedEntityPanel projection={projection} entityId={selectedEntityId} onFocus={pivotFocus} /><ConnectionDetailsPanel connection={selectedConnection} relationshipDetails={relationshipDetails} provenanceLoading={provenanceLoading} /><AnalystContext projection={projection} canReview={actions.canReviewFinding} /><InvestigationActions focusType={projection.focusEntity.entityType} canSubmitIncident={actions.canSubmitIncident} canCreateIncident={actions.canCreateIncident} canReviewIncident={actions.canReviewIncident} canCrossVerify={actions.canCrossVerify} /></aside>
     </div>
     <WorkspaceGrid workspaceKey="graph" initialItems={initialLayoutItems} widgets={widgets} ariaLabel="Network signal context panels" maxColumns={5} cellSize={230} />
   </div>;

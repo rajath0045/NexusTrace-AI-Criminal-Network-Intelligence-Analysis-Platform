@@ -53,14 +53,14 @@ export const incidentUpdateSchema = incidentInputSchema.omit({ incidentNumber: t
   status: z.enum(IncidentStatus).optional(),
 });
 
-export const timelineFilterValues = ["ALL", "INCIDENT", "EVIDENCE", "CASE", "RELATIONSHIP", "COMMUNICATION", "FINANCIAL"] as const;
+export const timelineFilterValues = ["ALL", "INCIDENT", "EVIDENCE", "CASE", "RELATIONSHIP", "COMMUNICATION", "FINANCIAL", "LOCATION"] as const;
 export const timelineQuerySchema = z.object({
   personId: z.string().uuid().optional(),
   caseId: z.string().uuid().optional(),
   incidentId: z.string().uuid().optional(),
   startTime: z.coerce.date().optional(),
   endTime: z.coerce.date().optional(),
-  types: z.array(z.enum(timelineFilterValues)).max(7).default(["ALL"]),
+  types: z.array(z.enum(timelineFilterValues)).max(timelineFilterValues.length).default(["ALL"]),
 }).superRefine((value, context) => {
   if (!value.personId && !value.caseId && !value.incidentId) {
     context.addIssue({ code: "custom", message: "A person, case, or incident scope is required." });
@@ -142,7 +142,7 @@ export interface TimelineItem {
   timestamp: Date;
   title: string;
   description: string;
-  sourceRecordType: "INCIDENT" | "EVIDENCE" | "CASE" | "RELATIONSHIP" | "COMMUNICATION" | "FINANCIAL";
+  sourceRecordType: "INCIDENT" | "EVIDENCE" | "CASE" | "RELATIONSHIP" | "COMMUNICATION" | "FINANCIAL" | "LOCATION_OBSERVATION";
   sourceRecordId: string;
   caseId: string | null;
   incidentId: string | null;

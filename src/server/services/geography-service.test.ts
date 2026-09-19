@@ -121,6 +121,35 @@ describe("GeographyService", () => {
     expect(projection.summary.unknownEndpointCount).toBe(1);
   });
 
+  it("adds meaningful authorized geographic observations to the unified timeline", async () => {
+    const repository = new MemoryRepository();
+    repository.observations = [observation()];
+    const service = new GeographyService(repository, vi.fn(async () => graph), vi.fn(async () => []));
+    const projection = await service.getProjection(departmentUser, { focusEntityId: ids.arjun, hops: 1, strengths: [RelationshipStrength.Primary], verificationStates: [VerificationState.Verified], startTime: new Date("2026-08-16T00:00:00.000Z"), endTime: new Date("2026-08-17T00:00:00.000Z"), allowedLocationWindowMinutes: 180 });
+    expect(projection.timeline).toEqual([expect.objectContaining({ type: "LOCATION", sourceRecordType: "LOCATION_OBSERVATION", sourceRecordId: repository.observations[0]?.id, evidenceId: ids.evidence })]);
+    expect(projection.timeline[0]?.description).toContain(`Source EVIDENCE ${ids.evidence}`);
+    expect(projection.timeline[0]?.description).toContain("DEPARTMENT VERIFIED");
+  });
+
+  it("does not turn static residence data into a timestamped presence event", async () => {
+    const repository = new MemoryRepository();
+    repository.observations = [observation({ observationType: LocationObservationType.Residence })];
+    const service = new GeographyService(repository, vi.fn(async () => graph), vi.fn(async () => []));
+    const projection = await service.getProjection(departmentUser, { focusEntityId: ids.arjun, hops: 1, strengths: [RelationshipStrength.Primary], verificationStates: [VerificationState.Verified], startTime: new Date("2026-08-16T00:00:00.000Z"), endTime: new Date("2026-08-17T00:00:00.000Z"), allowedLocationWindowMinutes: 180 });
+    expect(projection.timeline).toEqual([]);
+  });
+
+  it("enriches an existing authoritative event instead of duplicating its geographic source", async () => {
+    const repository = new MemoryRepository();
+    repository.observations = [observation({ sourceRecordType: LocationSourceRecordType.Communication, sourceRecordId: ids.communication })];
+    const communicationEvent = { id: `communication:${ids.communication}`, type: "COMMUNICATION" as const, timestamp: eventAt, title: "Communication: CALL", description: "Arjun Mehta → Meera Nair", sourceRecordType: "COMMUNICATION" as const, sourceRecordId: ids.communication, caseId: ids.case, incidentId: null, personIds: [], evidenceId: ids.evidence };
+    const service = new GeographyService(repository, vi.fn(async () => graph), vi.fn(async () => [communicationEvent]));
+    const projection = await service.getProjection(departmentUser, { focusEntityId: ids.arjun, hops: 1, strengths: [RelationshipStrength.Primary], verificationStates: [VerificationState.Verified], startTime: new Date("2026-08-16T00:00:00.000Z"), endTime: new Date("2026-08-17T00:00:00.000Z"), allowedLocationWindowMinutes: 180 });
+    expect(projection.timeline).toHaveLength(1);
+    expect(projection.timeline[0]).toMatchObject({ type: "COMMUNICATION", sourceRecordId: ids.communication });
+    expect(projection.timeline[0]?.description).toContain(`observation ${repository.observations[0]?.id}`);
+  });
+
   it("allows only authorized roles to create validated observations", async () => {
     const repository = new MemoryRepository();
     const service = new GeographyService(repository, vi.fn(async () => graph), vi.fn(async () => []));

@@ -146,3 +146,14 @@
 - Visually verified the production build at `/investigations`: authorized queue data, selected-finding snapshot and provenance, secure evidence links, follow-up controls, and clean browser console behavior all passed.
 - Prisma schema validation and migration status, ESLint, TypeScript, 85 unit/component tests, 30 PostgreSQL integration/authorization tests, and the webpack production build pass.
 - Next recommended phase: external-model integration behind the existing bounded, authorized, evidence-grounded analysis boundary. No external model integration is included in Task 12.
+
+## 2026-09-19 — Network Intelligence feature-completeness pass complete
+
+- Preserved the stabilized OpenFreeMap/MapLibre lifecycle, server-authorized projection, temporal location rules, relationship bundling, Cytoscape synchronization, and per-user workspace behavior.
+- Added meaningful temporal geographic observations to the unified timeline, enriching an existing authoritative source event instead of duplicating it and excluding static residence/property records from presence history.
+- Expanded the compact Selected Entity panel with authorized relationship context, Case/FIR links, visible connection and observation counts, incident context, linked asset counts, and observation provenance.
+- Completed connection “why shown” inspection with bundled record summaries and on-demand, server-authorized relationship provenance, department, creator/verifier, source evidence, Case/FIR, first/latest observation, and interaction metadata.
+- Added investigation-lead generation timestamps and source/evidence counts while routing deeper source review through the existing human-review workspace.
+- Added explicit geographic, relationship, timeline, finding, unknown-location, and no-selection states without synthetic fallback data.
+- Added latest-request-wins cancellation/generation protection so stale focus or filter responses cannot overwrite newer Network console state.
+- Network actions are projected from existing role capabilities; responsive verification retains a map-first mobile flow and avoids horizontal overflow.

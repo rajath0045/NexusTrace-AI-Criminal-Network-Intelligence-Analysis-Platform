@@ -275,8 +275,7 @@ export function GeographicNetworkMap({ projection, selectedEntityId, selectedCon
   const handleViewport = useCallback((viewport: { zoom: number }) => setZoom(viewport.zoom), []);
 
   if (observations.length === 0) {
-    const message = projection.observations.length === 0 ? "No geographic observations are available for the current investigation." : "Network relationships exist, but no geographic observations are available for the selected entity/time window.";
-    return <div className="network-map-empty"><MapPin aria-hidden="true" /><strong>{message}</strong><span>NexusTrace has not manufactured coordinates for this view.</span><div className="network-map-recovery"><button type="button" onClick={onSwitchToRelationship}>Switch to Relationship View</button></div></div>;
+    return <div className="network-map-empty"><MapPin aria-hidden="true" /><strong>NO GEOLOCATION</strong><span>No geographic observations are available for the selected entity and time window. NexusTrace has not manufactured coordinates for this view.</span><div className="network-map-recovery"><button type="button" onClick={onSwitchToRelationship}>Switch to Relationship View</button></div></div>;
   }
   if (mapError) return <div className="network-map-empty" role="alert"><TriangleAlert aria-hidden="true" /><strong>Map tiles could not be loaded.</strong><span>The authorized geographic projection remains unchanged. Retry the real basemap or continue in the complete relationship network.</span><div className="network-map-recovery"><button type="button" onClick={() => { setMapError(null); setMapLifecycle("INITIALIZING"); setMapAttempt((value) => value + 1); }}>Retry Map</button><button type="button" onClick={onSwitchToRelationship}>Switch to Relationship View</button></div></div>;
 

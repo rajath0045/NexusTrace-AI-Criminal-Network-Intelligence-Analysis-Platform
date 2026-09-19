@@ -269,6 +269,8 @@ export class PrismaGeographyRepository implements GeographyRepository {
       generatedAt: record.generatedAt,
       caseId: record.caseId,
       caseFirNumber: record.case?.firNumber ?? null,
+      supportingRecordCount: Array.isArray(record.supportingRecordIds) ? record.supportingRecordIds.length : 0,
+      evidenceCount: Array.isArray(record.evidenceIds) ? record.evidenceIds.length : 0,
     }));
   }
 }
