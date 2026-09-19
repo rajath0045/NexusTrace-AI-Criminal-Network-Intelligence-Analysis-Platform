@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DashboardCommandCenter } from "@/features/dashboard/dashboard-command-center";
 import { WorkspaceGrid } from "@/features/workspace/workspace-grid";
 import {
   AccessScope,
@@ -10,14 +11,16 @@ import {
 import { getCurrentActor } from "@/server/auth/session";
 import { can } from "@/server/authorization/policy";
 import { listCases } from "@/server/services/case-service";
+import { listIncidents } from "@/server/services/incident-service";
 import { getWorkspaceLayout } from "@/server/services/workspace-layout-service";
 
 export default async function DashboardPage() {
   const actor = await getCurrentActor();
   if (!actor) redirect("/login");
 
-  const [cases, layout] = await Promise.all([
+  const [cases, incidents, layout] = await Promise.all([
     listCases(actor),
+    listIncidents(actor),
     getWorkspaceLayout(actor, "dashboard"),
   ]);
 
@@ -51,6 +54,13 @@ export default async function DashboardPage() {
           View all cases
         </Link>
       </header>
+
+      <DashboardCommandCenter
+        cases={cases}
+        incidentCount={incidents.length}
+        canUseNetwork={can(actor, "RELATIONSHIP_SUGGEST")}
+        canAnalyze={can(actor, "INVESTIGATION_ANALYZE")}
+      />
 
       <WorkspaceGrid
         workspaceKey="dashboard"

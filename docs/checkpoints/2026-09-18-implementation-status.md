@@ -157,3 +157,12 @@
 - Added explicit geographic, relationship, timeline, finding, unknown-location, and no-selection states without synthetic fallback data.
 - Added latest-request-wins cancellation/generation protection so stale focus or filter responses cannot overwrite newer Network console state.
 - Network actions are projected from existing role capabilities; responsive verification retains a map-first mobile flow and avoids horizontal overflow.
+
+## 2026-09-19 — Authenticated intelligence workspace redesign complete
+
+- Replaced the protected-shell presentation with a compact NexusTrace navigation rail that expands on hover or keyboard focus. The server remains the source of capability filtering, and the shell exposes only implemented, authorized routes.
+- Added a responsive slide-in mobile drawer with NexusTrace identity, current operator role, real navigation links, logout, pointer controls, and Escape-to-close support. The content frame uses a stable flex layout so desktop expansion does not cause an abrupt page jump.
+- Added an authorized Dashboard command center based on real scoped cases and incidents. Its calm hover, focus, and touch activation emphasizes a selected module, fades unrelated modules, and exposes contextual route actions without inventing data or turning the page into a scroll presentation.
+- Preserved existing Dashboard widgets, Cases heading/action/table, workspace persistence, RBAC, graph console behavior, and all service/data contracts. The Network canvas remains the dominant workspace surface.
+- Added component coverage for compact/expanded shell states, active-route semantics, mobile drawer controls, role-authorized Dashboard modules, keyboard focus behavior, and browser coverage for Dashboard, Cases, mobile navigation, and the existing Network console.
+- `pnpm typecheck`, `pnpm lint`, 118 unit/component tests, 34 PostgreSQL integration tests, 2 Playwright end-to-end tests, and `pnpm exec next build --webpack` pass.
