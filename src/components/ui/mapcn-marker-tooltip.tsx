@@ -97,6 +97,7 @@ type MapProps = {
   viewport?: Partial<MapViewport>;
   onViewportChange?: (viewport: MapViewport) => void;
   loading?: boolean;
+  onError?: (error: Error) => void;
 } & Omit<MapLibreGL.MapOptions, "container" | "style">;
 
 function DefaultLoader() {
@@ -122,7 +123,7 @@ function getViewport(map: MapLibreGL.Map): MapViewport {
 }
 
 const Map = forwardRef<MapRef, MapProps>(function Map(
-  { children, className, theme: themeProp, styles, viewport, onViewportChange, loading = false, ...props },
+  { children, className, theme: themeProp, styles, viewport, onViewportChange, loading = false, onError, ...props },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -133,6 +134,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   const internalUpdateRef = useRef(false);
   const resolvedTheme = useResolvedTheme(themeProp);
   const onViewportChangeRef = useRef(onViewportChange);
+  const onErrorRef = useRef(onError);
 
   const mapStyles = useMemo(
     () => ({ dark: styles?.dark ?? defaultStyles.dark, light: styles?.light ?? defaultStyles.light }),
@@ -144,6 +146,10 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   useEffect(() => {
     onViewportChangeRef.current = onViewportChange;
   }, [onViewportChange]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   useImperativeHandle(ref, () => mapInstance as MapLibreGL.Map, [mapInstance]);
 
@@ -174,10 +180,15 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     const moveHandler = () => {
       if (!internalUpdateRef.current) onViewportChangeRef.current?.(getViewport(map));
     };
+    const errorHandler = (event: MapLibreGL.ErrorEvent) => {
+      const error = event.error instanceof Error ? event.error : new Error("The geographic basemap could not be loaded.");
+      onErrorRef.current?.(error);
+    };
 
     map.on("load", loadHandler);
     map.on("styledata", styleDataHandler);
     map.on("move", moveHandler);
+    map.on("error", errorHandler);
     setMapInstance(map);
 
     return () => {
@@ -185,6 +196,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       map.off("load", loadHandler);
       map.off("styledata", styleDataHandler);
       map.off("move", moveHandler);
+      map.off("error", errorHandler);
       map.remove();
       setMapInstance(null);
       setIsLoaded(false);

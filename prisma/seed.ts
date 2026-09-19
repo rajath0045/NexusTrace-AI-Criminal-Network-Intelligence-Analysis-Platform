@@ -83,6 +83,7 @@ const ids = {
     arjunProperty: "70000000-0000-4000-8000-000000000008",
     meeraResidence: "70000000-0000-4000-8000-000000000009",
     meeraPhone: "70000000-0000-4000-8000-000000000010",
+    arjunIncident: "70000000-0000-4000-8000-000000000011",
   },
   relationshipEvidence: {
     phone: "71000000-0000-4000-8000-000000000001",
@@ -94,6 +95,7 @@ const ids = {
     arjunProperty: "71000000-0000-4000-8000-000000000007",
     meeraResidence: "71000000-0000-4000-8000-000000000008",
     meeraPhone: "71000000-0000-4000-8000-000000000009",
+    arjunIncident: "71000000-0000-4000-8000-000000000010",
   },
   incidents: {
     kioskMeeting: "80000000-0000-4000-8000-000000000001",
@@ -1024,6 +1026,30 @@ export async function seedSyntheticDemoData() {
     { id: ids.incidentEntities.investigatorLead, incidentId: ids.incidents.investigatorLead, displayLabel: "INC-213", departmentId: ids.departments.financial, verificationState: VerificationState.PENDING },
   ] as const;
   for (const entity of incidentEntities) await prisma.graphEntity.upsert({ where: { id: entity.id }, update: { ...entity, entityType: GraphEntityType.INCIDENT, canonicalReference: `incident:${entity.displayLabel}`, personId: null, caseId: null }, create: { ...entity, entityType: GraphEntityType.INCIDENT, canonicalReference: `incident:${entity.displayLabel}`, personId: null, caseId: null } });
+
+  const arjunIncidentRelationship = {
+    id: ids.relationships.arjunIncident,
+    sourceEntityId: ids.entities.arjun,
+    targetEntityId: ids.incidentEntities.kioskMeeting,
+    relationshipType: "PARTICIPATED_IN",
+    strength: RelationshipStrength.SECONDARY,
+    evidenceConfidence: EvidenceConfidence.VERIFIED,
+    verificationState: VerificationState.VERIFIED,
+    interactionCount: 1,
+    interactionSummary: "Authorized incident participation derived from the accepted synthetic incident record.",
+    startsAt: new Date("2026-08-16T12:05:00.000Z"),
+    endsAt: new Date("2026-08-16T12:05:00.000Z"),
+    departmentId: ids.departments.cyber,
+    createdById: ids.users.departmentUser,
+    verifiedById: ids.users.administrator,
+    verifiedAt: new Date("2026-09-03T10:00:00.000Z"),
+  } as const;
+  await prisma.graphRelationship.upsert({ where: { id: arjunIncidentRelationship.id }, update: arjunIncidentRelationship, create: arjunIncidentRelationship });
+  await prisma.relationshipEvidence.upsert({
+    where: { id: ids.relationshipEvidence.arjunIncident },
+    update: { relationshipId: ids.relationships.arjunIncident, evidenceId: ids.evidence.callSummary, sourceCaseId: ids.cases.accountTakeover, note: "Synthetic accepted-incident provenance." },
+    create: { id: ids.relationshipEvidence.arjunIncident, relationshipId: ids.relationships.arjunIncident, evidenceId: ids.evidence.callSummary, sourceCaseId: ids.cases.accountTakeover, note: "Synthetic accepted-incident provenance." },
+  });
 
   const participants = [
     { id: ids.incidentParticipants.arjun, incidentId: ids.incidents.kioskMeeting, personId: ids.people.arjun, graphEntityId: null, participation: IncidentParticipation.SUSPECT, notes: "Synthetic participant link." },

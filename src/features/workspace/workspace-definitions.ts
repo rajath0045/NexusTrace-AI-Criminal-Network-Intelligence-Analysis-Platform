@@ -60,8 +60,10 @@ const casesWidgets: readonly WorkspaceWidgetDefinition[] = [
 ];
 
 const graphWidgets: readonly WorkspaceWidgetDefinition[] = [
-  { id: "entity-details", label: "Entity details", size: "wide", capability: "CASE_VIEW" },
-  { id: "connection-details", label: "Connection details", size: "wide", capability: "CASE_VIEW" },
+  { id: "communication-signals", label: "Communication signals", size: "wide", capability: "CASE_VIEW" },
+  { id: "financial-signals", label: "Financial signals", size: "wide", capability: "CASE_VIEW" },
+  { id: "verification-summary", label: "Verification summary", size: "wide", capability: "CASE_VIEW" },
+  { id: "related-cases", label: "Related cases", size: "wide", capability: "CASE_VIEW" },
   { id: "supporting-evidence", label: "Supporting evidence", size: "wide", capability: "CASE_VIEW" },
 ];
 
