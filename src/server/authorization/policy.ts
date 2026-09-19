@@ -25,6 +25,7 @@ const roleCapabilities: Readonly<Record<UserRole, ReadonlySet<Capability>>> = {
     "INCIDENT_CREATE",
     "INCIDENT_REVIEW",
     "ACTIVITY_CREATE",
+    "LOCATION_OBSERVATION_CREATE",
     "INVESTIGATION_ANALYZE",
     "FINDING_REVIEW",
   ]),

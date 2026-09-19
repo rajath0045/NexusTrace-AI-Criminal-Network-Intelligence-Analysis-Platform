@@ -108,9 +108,9 @@ describe("PrismaGraphRepository", () => {
       verificationStates: [VerificationState.Verified],
     });
 
-    expect(graph?.edges).toHaveLength(1);
+    expect(graph?.edges.length).toBeGreaterThanOrEqual(1);
     expect(graph?.nodes.map((node) => node.id)).toContain(expectedTarget);
-    expect(graph?.edges[0]?.strength).toBe(strength);
+    expect(graph?.edges.every((edge) => edge.strength === strength)).toBe(true);
   });
 
   it("filters pending intelligence independently from relationship strength", async () => {

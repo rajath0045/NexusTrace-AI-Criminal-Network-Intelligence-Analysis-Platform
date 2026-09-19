@@ -117,6 +117,26 @@ export enum FinancialTransactionType {
   Other = "OTHER",
 }
 
+export enum LocationObservationType {
+  Residence = "RESIDENCE",
+  Property = "PROPERTY",
+  RegisteredAddress = "REGISTERED_ADDRESS",
+  ObservedPersonLocation = "OBSERVED_PERSON_LOCATION",
+  VehicleObservation = "VEHICLE_OBSERVATION",
+  DeviceObservation = "DEVICE_OBSERVATION",
+  IncidentLocation = "INCIDENT_LOCATION",
+  EvidenceLocation = "EVIDENCE_LOCATION",
+  OtherAuthorizedObservation = "OTHER_AUTHORIZED_OBSERVATION",
+}
+
+export enum LocationSourceRecordType {
+  Case = "CASE",
+  Incident = "INCIDENT",
+  Evidence = "EVIDENCE",
+  Communication = "COMMUNICATION",
+  Relationship = "RELATIONSHIP",
+}
+
 export enum FindingReviewStatus {
   Unreviewed = "UNREVIEWED",
   UnderReview = "UNDER_REVIEW",

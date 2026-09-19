@@ -125,6 +125,26 @@ enum FinancialTransactionType {
   OTHER
 }
 
+enum LocationObservationType {
+  RESIDENCE
+  PROPERTY
+  REGISTERED_ADDRESS
+  OBSERVED_PERSON_LOCATION
+  VEHICLE_OBSERVATION
+  DEVICE_OBSERVATION
+  INCIDENT_LOCATION
+  EVIDENCE_LOCATION
+  OTHER_AUTHORIZED_OBSERVATION
+}
+
+enum LocationSourceRecordType {
+  CASE
+  INCIDENT
+  EVIDENCE
+  COMMUNICATION
+  RELATIONSHIP
+}
+
 enum FindingReviewStatus {
   UNREVIEWED
   UNDER_REVIEW
@@ -168,6 +188,7 @@ model Department {
   financialTransactions FinancialTransaction[]
   investigationFindings InvestigationFinding[]
   findingReviews FindingReview[]
+  locationObservations EntityLocationObservation[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 }
@@ -192,6 +213,7 @@ model User {
   submittedIncidents    Incident[]              @relation("IncidentSubmitter")
   departmentVerifiedIncidents Incident[]         @relation("IncidentDepartmentVerifier")
   crossVerifiedIncidents Incident[]              @relation("IncidentCrossVerifier")
+  createdLocationObservations EntityLocationObservation[] @relation("LocationObservationCreator")
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -308,6 +330,7 @@ model Evidence {
   incidentEvidence     IncidentEvidence[]
   communicationSources CommunicationRecord[] @relation("CommunicationSourceEvidence")
   financialTransactionSources FinancialTransaction[] @relation("FinancialTransactionSourceEvidence")
+  locationObservations EntityLocationObservation[]
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
@@ -338,11 +361,42 @@ model GraphEntity {
   destinationCommunications CommunicationRecord[] @relation("CommunicationDestination")
   sourceTransactions FinancialTransaction[] @relation("FinancialTransactionSource")
   destinationTransactions FinancialTransaction[] @relation("FinancialTransactionDestination")
+  locationObservations EntityLocationObservation[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
   @@index([departmentId, entityType])
   @@index([verificationState])
+}
+
+model EntityLocationObservation {
+  id                String                    @id @default(uuid()) @db.Uuid
+  graphEntityId     String                    @db.Uuid
+  graphEntity       GraphEntity               @relation(fields: [graphEntityId], references: [id], onDelete: Cascade)
+  latitude          Decimal                   @db.Decimal(9, 6)
+  longitude         Decimal                   @db.Decimal(9, 6)
+  observedAt        DateTime
+  observationType   LocationObservationType
+  locationLabel     String
+  context           String?
+  accuracyMeters    Int?
+  sourceRecordType  LocationSourceRecordType
+  sourceRecordId    String                    @db.Uuid
+  sourceEvidenceId  String?                   @db.Uuid
+  sourceEvidence    Evidence?                 @relation(fields: [sourceEvidenceId], references: [id], onDelete: SetNull)
+  departmentId      String                    @db.Uuid
+  department        Department                @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  verificationLevel IncidentVerificationLevel @default(UNVERIFIED)
+  createdById       String                    @db.Uuid
+  createdBy         User                      @relation("LocationObservationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt         DateTime                  @default(now())
+
+  @@index([graphEntityId, observedAt])
+  @@index([departmentId, observedAt])
+  @@index([sourceRecordType, sourceRecordId])
+  @@index([observationType, observedAt])
+  @@index([sourceEvidenceId])
+  @@index([createdById])
 }
 
 model Incident {
