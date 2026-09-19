@@ -1282,7 +1282,7 @@ export async function seedSyntheticDemoData() {
   }
 
   console.info(
-    "Seeded deterministic NexusTrace demo data: 3 departments, 3 users, 3 cases, 4 people, 3 evidence records, 3 incidents, 17 communications, 4 transactions, 18 graph entities, 10 relationships, and 10 authorized geographic observations.",
+    "Seeded deterministic NexusTrace demo data: 3 departments, 3 users, 3 cases, 4 people, 3 evidence records, 3 incidents, 17 communications, 4 transactions, 18 graph entities, 11 relationships, and 10 authorized geographic observations.",
   );
 }
 

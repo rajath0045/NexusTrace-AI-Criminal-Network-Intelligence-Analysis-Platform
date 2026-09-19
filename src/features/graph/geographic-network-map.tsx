@@ -18,8 +18,9 @@ import {
 } from "lucide-react";
 import * as MapLibreGL from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Map as MapCanvas, MapMarker, MarkerContent, MarkerLabel, MarkerTooltip, useMap } from "@/components/ui/mapcn-marker-tooltip";
+import { Map as MapCanvas, MapMarker, MarkerContent, MarkerLabel, MarkerTooltip, useMap, type MapLifecycleState } from "@/components/ui/mapcn-marker-tooltip";
 import { GraphEntityType, IncidentVerificationLevel, LocationObservationType, RelationshipStrength } from "@/domain/model";
+import { applyNexusTraceDarkBasemap, NEXUSTRACE_MAP_STYLES } from "./geographic-map-theme";
 import type { SerializedGeographicConnection, SerializedGeographicProjection, SerializedLocationObservation } from "./geographic-view-model";
 
 const tierColors: Record<RelationshipStrength, string> = {
@@ -140,16 +141,16 @@ function GeographicLayers({ observations, connections, heatmap, fitVersion, rece
     if (!map || !isLoaded) return;
     const navigation = new MapLibreGL.NavigationControl({ visualizePitch: true });
     map.addControl(navigation, "bottom-right");
-    map.addSource("nexustrace-observations", { type: "geojson", data: observationData, ...observationClustering });
-    map.addLayer({ id: "nexustrace-heatmap", type: "heatmap", source: "nexustrace-observations", maxzoom: 14, layout: { visibility: "none" }, paint: { "heatmap-weight": 0.65, "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 13, 1.2], "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.35, "rgba(47,155,255,0.25)", 0.7, "rgba(245,219,69,0.4)", 1, "rgba(255,54,94,0.58)"], "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 8, 13, 24], "heatmap-opacity": 0.58 } });
-    map.addLayer({ id: "nexustrace-observation-clusters", type: "circle", source: "nexustrace-observations", filter: ["has", "point_count"], paint: { "circle-color": "#101d2d", "circle-stroke-color": "#5ca9ff", "circle-stroke-width": 1.5, "circle-radius": ["step", ["get", "point_count"], 15, 10, 19, 30, 24], "circle-opacity": 0.92 } });
-    map.addLayer({ id: "nexustrace-observation-cluster-count", type: "symbol", source: "nexustrace-observations", filter: ["has", "point_count"], layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 11 }, paint: { "text-color": "#eaf3ff" } });
-    map.addLayer({ id: "nexustrace-observation-points", type: "circle", source: "nexustrace-observations", filter: ["!", ["has", "point_count"]], paint: { "circle-color": "#5ca9ff", "circle-radius": 3, "circle-opacity": 0.22, "circle-stroke-color": "#d8ebff", "circle-stroke-width": 1 } });
-    map.addSource("nexustrace-connections", { type: "geojson", data: connectionData });
+    if (!map.getSource("nexustrace-observations")) map.addSource("nexustrace-observations", { type: "geojson", data: { type: "FeatureCollection", features: [] }, ...observationClustering });
+    if (!map.getLayer("nexustrace-heatmap")) map.addLayer({ id: "nexustrace-heatmap", type: "heatmap", source: "nexustrace-observations", maxzoom: 14, layout: { visibility: "none" }, paint: { "heatmap-weight": 0.65, "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 13, 1.2], "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.35, "rgba(47,155,255,0.25)", 0.7, "rgba(245,219,69,0.4)", 1, "rgba(255,54,94,0.58)"], "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 8, 13, 24], "heatmap-opacity": 0.58 } });
+    if (!map.getLayer("nexustrace-observation-clusters")) map.addLayer({ id: "nexustrace-observation-clusters", type: "circle", source: "nexustrace-observations", filter: ["has", "point_count"], paint: { "circle-color": "#101d2d", "circle-stroke-color": "#5ca9ff", "circle-stroke-width": 1.5, "circle-radius": ["step", ["get", "point_count"], 15, 10, 19, 30, 24], "circle-opacity": 0.92 } });
+    if (!map.getLayer("nexustrace-observation-cluster-count")) map.addLayer({ id: "nexustrace-observation-cluster-count", type: "symbol", source: "nexustrace-observations", filter: ["has", "point_count"], layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 11 }, paint: { "text-color": "#eaf3ff" } });
+    if (!map.getLayer("nexustrace-observation-points")) map.addLayer({ id: "nexustrace-observation-points", type: "circle", source: "nexustrace-observations", filter: ["!", ["has", "point_count"]], paint: { "circle-color": "#5ca9ff", "circle-radius": 3, "circle-opacity": 0.22, "circle-stroke-color": "#d8ebff", "circle-stroke-width": 1 } });
+    if (!map.getSource("nexustrace-connections")) map.addSource("nexustrace-connections", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     const lineColor = ["match", ["get", "strength"], RelationshipStrength.Primary, tierColors.PRIMARY, RelationshipStrength.Secondary, tierColors.SECONDARY, RelationshipStrength.Tertiary, tierColors.TERTIARY, "#8fa2b8"] as unknown as string;
-    map.addLayer({ id: "nexustrace-connections-cross-verified", type: "line", source: "nexustrace-connections", filter: ["==", ["get", "verification"], IncidentVerificationLevel.CrossVerified], paint: { "line-color": lineColor, "line-width": 6, "line-opacity": 0.24, "line-blur": 3 } });
-    map.addLayer({ id: "nexustrace-connections", type: "line", source: "nexustrace-connections", paint: { "line-color": lineColor, "line-width": ["match", ["get", "strength"], RelationshipStrength.Primary, 3.2, RelationshipStrength.Secondary, 2.5, RelationshipStrength.Tertiary, 2, 1.5], "line-opacity": ["match", ["get", "verification"], IncidentVerificationLevel.CrossVerified, verificationStyles.CROSS_VERIFIED.opacity, IncidentVerificationLevel.DepartmentVerified, verificationStyles.DEPARTMENT_VERIFIED.opacity, "VERIFIED", verificationStyles.VERIFIED.opacity, "PENDING", verificationStyles.PENDING.opacity, verificationStyles.UNVERIFIED.opacity] } });
-    map.addLayer({ id: "nexustrace-connections-unverified", type: "line", source: "nexustrace-connections", filter: ["in", ["get", "verification"], ["literal", [IncidentVerificationLevel.Unverified, "PENDING", "CHANGES_REQUESTED"]]], paint: { "line-color": lineColor, "line-width": 2, "line-opacity": 0.72, "line-dasharray": [2, 2] } });
+    if (!map.getLayer("nexustrace-connections-cross-verified")) map.addLayer({ id: "nexustrace-connections-cross-verified", type: "line", source: "nexustrace-connections", filter: ["==", ["get", "verification"], IncidentVerificationLevel.CrossVerified], paint: { "line-color": lineColor, "line-width": 6, "line-opacity": 0.24, "line-blur": 3 } });
+    if (!map.getLayer("nexustrace-connections")) map.addLayer({ id: "nexustrace-connections", type: "line", source: "nexustrace-connections", paint: { "line-color": lineColor, "line-width": ["match", ["get", "strength"], RelationshipStrength.Primary, 3.2, RelationshipStrength.Secondary, 2.5, RelationshipStrength.Tertiary, 2, 1.5], "line-opacity": ["match", ["get", "verification"], IncidentVerificationLevel.CrossVerified, verificationStyles.CROSS_VERIFIED.opacity, IncidentVerificationLevel.DepartmentVerified, verificationStyles.DEPARTMENT_VERIFIED.opacity, "VERIFIED", verificationStyles.VERIFIED.opacity, "PENDING", verificationStyles.PENDING.opacity, verificationStyles.UNVERIFIED.opacity] } });
+    if (!map.getLayer("nexustrace-connections-unverified")) map.addLayer({ id: "nexustrace-connections-unverified", type: "line", source: "nexustrace-connections", filter: ["in", ["get", "verification"], ["literal", [IncidentVerificationLevel.Unverified, "PENDING", "CHANGES_REQUESTED"]]], paint: { "line-color": lineColor, "line-width": 2, "line-opacity": 0.72, "line-dasharray": [2, 2] } });
 
     const handleConnectionClick = (event: MapLibreGL.MapLayerMouseEvent) => {
       const id = event.features?.[0]?.properties?.id;
@@ -167,24 +168,41 @@ function GeographicLayers({ observations, connections, heatmap, fitVersion, rece
       const entityId = event.features?.[0]?.properties?.entityId;
       if (typeof entityId === "string") onEntitySelectRef.current(entityId);
     };
+    const handleConnectionEnter = () => { map.getCanvas().style.cursor = "pointer"; };
+    const handleConnectionLeave = () => { map.getCanvas().style.cursor = ""; };
     map.on("click", "nexustrace-connections", handleConnectionClick);
     map.on("click", "nexustrace-connections-unverified", handleConnectionClick);
     map.on("click", "nexustrace-observation-clusters", handleClusterClick);
     map.on("click", "nexustrace-observation-points", handleObservationClick);
-    map.on("mouseenter", "nexustrace-connections", () => { map.getCanvas().style.cursor = "pointer"; });
-    map.on("mouseleave", "nexustrace-connections", () => { map.getCanvas().style.cursor = ""; });
+    map.on("mouseenter", "nexustrace-connections", handleConnectionEnter);
+    map.on("mouseleave", "nexustrace-connections", handleConnectionLeave);
 
     return () => {
-      map.off("click", "nexustrace-connections", handleConnectionClick);
-      map.off("click", "nexustrace-connections-unverified", handleConnectionClick);
-      map.off("click", "nexustrace-observation-clusters", handleClusterClick);
-      map.off("click", "nexustrace-observation-points", handleObservationClick);
-      for (const id of ["nexustrace-connections-unverified", "nexustrace-connections", "nexustrace-connections-cross-verified", "nexustrace-observation-points", "nexustrace-observation-cluster-count", "nexustrace-observation-clusters", "nexustrace-heatmap"]) if (map.getLayer(id)) map.removeLayer(id);
-      if (map.getSource("nexustrace-connections")) map.removeSource("nexustrace-connections");
-      if (map.getSource("nexustrace-observations")) map.removeSource("nexustrace-observations");
-      map.removeControl(navigation);
+      const safely = (cleanup: () => void) => { try { cleanup(); } catch { /* The parent Map may already be removed during a view switch. */ } };
+      safely(() => map.off("click", "nexustrace-connections", handleConnectionClick));
+      safely(() => map.off("click", "nexustrace-connections-unverified", handleConnectionClick));
+      safely(() => map.off("click", "nexustrace-observation-clusters", handleClusterClick));
+      safely(() => map.off("click", "nexustrace-observation-points", handleObservationClick));
+      safely(() => map.off("mouseenter", "nexustrace-connections", handleConnectionEnter));
+      safely(() => map.off("mouseleave", "nexustrace-connections", handleConnectionLeave));
+      for (const id of ["nexustrace-connections-unverified", "nexustrace-connections", "nexustrace-connections-cross-verified", "nexustrace-observation-points", "nexustrace-observation-cluster-count", "nexustrace-observation-clusters", "nexustrace-heatmap"]) safely(() => { if (map.getLayer(id)) map.removeLayer(id); });
+      safely(() => { if (map.getSource("nexustrace-connections")) map.removeSource("nexustrace-connections"); });
+      safely(() => { if (map.getSource("nexustrace-observations")) map.removeSource("nexustrace-observations"); });
+      safely(() => map.removeControl(navigation));
     };
-  }, [connectionData, isLoaded, map, observationData]);
+  }, [isLoaded, map]);
+
+  useEffect(() => {
+    if (!map || !isLoaded) return;
+    const source = map.getSource("nexustrace-observations") as MapLibreGL.GeoJSONSource | undefined;
+    source?.setData(observationData);
+  }, [isLoaded, map, observationData]);
+
+  useEffect(() => {
+    if (!map || !isLoaded) return;
+    const source = map.getSource("nexustrace-connections") as MapLibreGL.GeoJSONSource | undefined;
+    source?.setData(connectionData);
+  }, [connectionData, isLoaded, map]);
 
   useEffect(() => {
     if (!map || !isLoaded || !map.getLayer("nexustrace-heatmap")) return;
@@ -228,7 +246,7 @@ export function selectImportantMarkers(observations: SerializedLocationObservati
     .slice(0, 36);
 }
 
-export function GeographicNetworkMap({ projection, selectedEntityId, selectedConnectionId, visibleEntityTypes, showNetwork, showObservations, heatmap, fitVersion, recenterVersion, onEntitySelect, onConnectionSelect }: {
+export function GeographicNetworkMap({ projection, selectedEntityId, selectedConnectionId, visibleEntityTypes, showNetwork, showObservations, heatmap, fitVersion, recenterVersion, onEntitySelect, onConnectionSelect, onSwitchToRelationship }: {
   projection: SerializedGeographicProjection;
   selectedEntityId: string | null;
   selectedConnectionId: string | null;
@@ -240,9 +258,12 @@ export function GeographicNetworkMap({ projection, selectedEntityId, selectedCon
   recenterVersion: number;
   onEntitySelect: (entityId: string) => void;
   onConnectionSelect: (connectionId: string) => void;
+  onSwitchToRelationship: () => void;
 }) {
   const [zoom, setZoom] = useState(11);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [mapAttempt, setMapAttempt] = useState(0);
+  const [mapLifecycle, setMapLifecycle] = useState<MapLifecycleState>("INITIALIZING");
   const observations = useMemo(() => projection.observations.filter((item) => visibleEntityTypes.includes(item.entityType)), [projection.observations, visibleEntityTypes]);
   const layerObservations = useMemo(() => showObservations ? observations : [], [observations, showObservations]);
   const markers = useMemo(() => showObservations ? selectImportantMarkers(observations, projection.focusEntity.id, selectedEntityId) : [], [observations, projection.focusEntity.id, selectedEntityId, showObservations]);
@@ -253,12 +274,16 @@ export function GeographicNetworkMap({ projection, selectedEntityId, selectedCon
   }, [observations, projection.focusEntity.id]);
   const handleViewport = useCallback((viewport: { zoom: number }) => setZoom(viewport.zoom), []);
 
-  if (observations.length === 0) return <div className="network-map-empty"><MapPin aria-hidden="true" /><strong>No geolocation available</strong><span>{projection.focusEntity.displayLabel} has authorized network relationships, but no geographic observation matches this scope. Switch to Relationship view.</span></div>;
-  if (mapError) return <div className="network-map-empty" role="alert"><TriangleAlert aria-hidden="true" /><strong>Geographic basemap unavailable</strong><span>{mapError} Relationship view remains available.</span></div>;
+  if (observations.length === 0) {
+    const message = projection.observations.length === 0 ? "No geographic observations are available for the current investigation." : "Network relationships exist, but no geographic observations are available for the selected entity/time window.";
+    return <div className="network-map-empty"><MapPin aria-hidden="true" /><strong>{message}</strong><span>NexusTrace has not manufactured coordinates for this view.</span><div className="network-map-recovery"><button type="button" onClick={onSwitchToRelationship}>Switch to Relationship View</button></div></div>;
+  }
+  if (mapError) return <div className="network-map-empty" role="alert"><TriangleAlert aria-hidden="true" /><strong>Map tiles could not be loaded.</strong><span>The authorized geographic projection remains unchanged. Retry the real basemap or continue in the complete relationship network.</span><div className="network-map-recovery"><button type="button" onClick={() => { setMapError(null); setMapLifecycle("INITIALIZING"); setMapAttempt((value) => value + 1); }}>Retry Map</button><button type="button" onClick={onSwitchToRelationship}>Switch to Relationship View</button></div></div>;
 
   return (
-    <MapCanvas className="network-geographic-map" theme="dark" center={initialCenter} zoom={11} minZoom={3} maxZoom={18} onViewportChange={handleViewport} onError={(error) => setMapError(error.message)}>
+    <MapCanvas key={mapAttempt} className="network-geographic-map" theme="dark" styles={NEXUSTRACE_MAP_STYLES} center={initialCenter} zoom={11} minZoom={3} maxZoom={18} loadingLabel="Loading geographic intelligence…" onViewportChange={handleViewport} onStyleReady={applyNexusTraceDarkBasemap} onLifecycleChange={setMapLifecycle} onError={() => setMapError("Map tiles could not be loaded.")}>
       <GeographicLayers observations={layerObservations} connections={mappedConnections} heatmap={heatmap} fitVersion={fitVersion} recenterVersion={recenterVersion} focusEntityId={projection.focusEntity.id} onEntitySelect={onEntitySelect} onConnectionSelect={onConnectionSelect} />
+      {mapLifecycle === "DELAYED" ? <div className="network-map-delay" role="status"><TriangleAlert aria-hidden="true" /><div><strong>Basemap detail is taking longer than expected.</strong><span>The authorized overlays remain available while MapLibre continues loading OpenFreeMap.</span></div><div className="network-map-recovery"><button type="button" onClick={() => { setMapLifecycle("INITIALIZING"); setMapAttempt((value) => value + 1); }}>Retry Map</button><button type="button" onClick={onSwitchToRelationship}>Switch to Relationship View</button></div></div> : null}
       {markers.map((observation) => {
         const Icon = observationIcon(observation);
         const tone = markerTone(observation, projection.focusEntity.id, selectedEntityId);

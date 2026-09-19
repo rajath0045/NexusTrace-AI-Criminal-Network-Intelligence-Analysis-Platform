@@ -6,7 +6,6 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import {
   createContext,
   forwardRef,
-  useCallback,
   useContext,
   useEffect,
   useImperativeHandle,
@@ -17,13 +16,15 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+MapLibreGL.setWorkerUrl("/vendor/maplibre/6.10.0/maplibre-gl-worker.mjs");
+
 function cn(...inputs: Array<string | false | null | undefined>) {
   return inputs.filter(Boolean).join(" ");
 }
 
 const defaultStyles = {
-  dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-  light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+  dark: "https://tiles.openfreemap.org/styles/liberty",
+  light: "https://tiles.openfreemap.org/styles/liberty",
 };
 
 type Theme = "light" | "dark";
@@ -37,10 +38,12 @@ type MapViewport = {
 
 type MapStyleOption = string | MapLibreGL.StyleSpecification;
 type MapRef = MapLibreGL.Map;
+export type MapLifecycleState = "INITIALIZING" | "STYLE_LOADING" | "READY" | "DELAYED" | "ERROR";
 
 type MapContextValue = {
   map: MapLibreGL.Map | null;
   isLoaded: boolean;
+  status: MapLifecycleState;
 };
 
 const MapContext = createContext<MapContextValue | null>(null);
@@ -97,17 +100,22 @@ type MapProps = {
   viewport?: Partial<MapViewport>;
   onViewportChange?: (viewport: MapViewport) => void;
   loading?: boolean;
+  loadingLabel?: string;
+  loadTimeoutMs?: number;
+  onStyleReady?: (map: MapLibreGL.Map) => void;
+  onLifecycleChange?: (status: MapLifecycleState) => void;
   onError?: (error: Error) => void;
 } & Omit<MapLibreGL.MapOptions, "container" | "style">;
 
-function DefaultLoader() {
+function DefaultLoader({ label }: { label: string }) {
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-xs">
+    <div className="mapcn-loading-state absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-xs" role="status">
       <div className="flex gap-1">
         <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/60" />
         <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/60 [animation-delay:150ms]" />
         <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/60 [animation-delay:300ms]" />
       </div>
+      <span>{label}</span>
     </div>
   );
 }
@@ -123,18 +131,21 @@ function getViewport(map: MapLibreGL.Map): MapViewport {
 }
 
 const Map = forwardRef<MapRef, MapProps>(function Map(
-  { children, className, theme: themeProp, styles, viewport, onViewportChange, loading = false, onError, ...props },
+  { children, className, theme: themeProp, styles, viewport, onViewportChange, loading = false, loadingLabel = "Loading map…", loadTimeoutMs = 12_000, onStyleReady, onLifecycleChange, onError, ...props },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<MapLibreGL.Map | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
-  const styleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [lifecycle, setLifecycle] = useState<MapLifecycleState>("INITIALIZING");
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const internalUpdateRef = useRef(false);
   const resolvedTheme = useResolvedTheme(themeProp);
   const onViewportChangeRef = useRef(onViewportChange);
   const onErrorRef = useRef(onError);
+  const onStyleReadyRef = useRef(onStyleReady);
+  const onLifecycleChangeRef = useRef(onLifecycleChange);
 
   const mapStyles = useMemo(
     () => ({ dark: styles?.dark ?? defaultStyles.dark, light: styles?.light ?? defaultStyles.light }),
@@ -151,14 +162,15 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     onErrorRef.current = onError;
   }, [onError]);
 
-  useImperativeHandle(ref, () => mapInstance as MapLibreGL.Map, [mapInstance]);
+  useEffect(() => {
+    onStyleReadyRef.current = onStyleReady;
+  }, [onStyleReady]);
 
-  const clearStyleTimeout = useCallback(() => {
-    if (styleTimeoutRef.current) {
-      clearTimeout(styleTimeoutRef.current);
-      styleTimeoutRef.current = null;
-    }
-  }, []);
+  useEffect(() => {
+    onLifecycleChangeRef.current = onLifecycleChange;
+  }, [onLifecycleChange]);
+
+  useImperativeHandle(ref, () => mapInstance as MapLibreGL.Map, [mapInstance]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -171,50 +183,74 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       ...initial.props,
       ...initial.viewport,
     });
+    let initialStyleReady = false;
+    let terminalError = false;
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => map.resize());
+    resizeObserver?.observe(containerRef.current);
 
-    const styleDataHandler = () => {
-      clearStyleTimeout();
-      styleTimeoutRef.current = setTimeout(() => setIsStyleLoaded(true), 100);
+    const updateLifecycle = (status: MapLifecycleState) => {
+      setLifecycle(status);
+      onLifecycleChangeRef.current?.(status);
     };
-    const loadHandler = () => setIsLoaded(true);
+    const styleLoadHandler = () => {
+      initialStyleReady = true;
+      terminalError = false;
+      onStyleReadyRef.current?.(map);
+      map.resize();
+      setIsStyleLoaded(true);
+      updateLifecycle("READY");
+    };
+    const loadHandler = () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      setIsFullyLoaded(true);
+      if (!terminalError) updateLifecycle("READY");
+    };
     const moveHandler = () => {
       if (!internalUpdateRef.current) onViewportChangeRef.current?.(getViewport(map));
     };
     const errorHandler = (event: MapLibreGL.ErrorEvent) => {
       const error = event.error instanceof Error ? event.error : new Error("The geographic basemap could not be loaded.");
-      onErrorRef.current?.(error);
+      if (!initialStyleReady) {
+        terminalError = true;
+        updateLifecycle("ERROR");
+        onErrorRef.current?.(error);
+      }
     };
 
+    updateLifecycle("STYLE_LOADING");
     map.on("load", loadHandler);
-    map.on("styledata", styleDataHandler);
+    map.on("style.load", styleLoadHandler);
     map.on("move", moveHandler);
     map.on("error", errorHandler);
     setMapInstance(map);
+    loadTimeoutRef.current = setTimeout(() => {
+      if (!map.loaded() && !terminalError) updateLifecycle("DELAYED");
+    }, loadTimeoutMs);
 
     return () => {
-      clearStyleTimeout();
       map.off("load", loadHandler);
-      map.off("styledata", styleDataHandler);
+      map.off("style.load", styleLoadHandler);
       map.off("move", moveHandler);
       map.off("error", errorHandler);
+      resizeObserver?.disconnect();
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
       map.remove();
       setMapInstance(null);
-      setIsLoaded(false);
+      setIsFullyLoaded(false);
       setIsStyleLoaded(false);
+      setLifecycle("INITIALIZING");
     };
-  }, [clearStyleTimeout]);
+  }, [loadTimeoutMs]);
 
   useEffect(() => {
     if (!mapInstance) return;
     const nextStyle = resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
     if (appliedStyleRef.current === nextStyle) return;
-    const loadingHandler = () => setIsStyleLoaded(false);
-    mapInstance.once("styledataloading", loadingHandler);
+    setIsStyleLoaded(false);
+    setLifecycle("STYLE_LOADING");
+    onLifecycleChangeRef.current?.("STYLE_LOADING");
     mapInstance.setStyle(nextStyle);
     appliedStyleRef.current = nextStyle;
-    return () => {
-      mapInstance.off("styledataloading", loadingHandler);
-    };
   }, [resolvedTheme, mapStyles, mapInstance]);
 
   useEffect(() => {
@@ -226,12 +262,12 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     });
   }, [mapInstance, viewport]);
 
-  const contextValue = useMemo(() => ({ map: mapInstance, isLoaded: isLoaded && isStyleLoaded }), [mapInstance, isLoaded, isStyleLoaded]);
+  const contextValue = useMemo(() => ({ map: mapInstance, isLoaded: Boolean(mapInstance) && isStyleLoaded, status: lifecycle }), [lifecycle, mapInstance, isStyleLoaded]);
 
   return (
     <MapContext.Provider value={contextValue}>
-      <div ref={containerRef} className={cn("relative h-full w-full", className)}>
-        {(!isLoaded || loading) && <DefaultLoader />}
+      <div ref={containerRef} className={cn("relative h-full w-full", className)} data-map-state={lifecycle} data-map-ready={contextValue.isLoaded ? "true" : "false"} data-map-loaded={isFullyLoaded ? "true" : "false"} data-map-style-loaded={isStyleLoaded ? "true" : "false"}>
+        {(!contextValue.isLoaded || loading) && <DefaultLoader label={loadingLabel} />}
         {mapInstance && children}
       </div>
     </MapContext.Provider>

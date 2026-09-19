@@ -67,4 +67,5 @@ Generated from project sources at 2026-09-18T08:29:58.909Z.
 - Authenticated dashboard and cases pages use a fixed-by-default, user-customizable widget grid with restrained inline layout controls and existing semantic tokens.
 - The network workspace reserves its dominant canvas for Cytoscape interactions; only surrounding evidence and detail panels use the customizable workspace grid.
 - The network graph uses compact marker-style SVG nodes, selective semantic labels, and small hover cards; relationship evidence remains in the authorized side panels rather than the canvas.
+- The geographic network view uses a defensively darkened OpenFreeMap Liberty baselayer, preserves useful roads, water, and place labels, and keeps bright authorized intelligence overlays visually dominant.
 - Incident and timeline workspaces retain the compact fixed-by-default investigation layout: chronology is dense but readable, with type filters and source links instead of decorative temporal effects.
