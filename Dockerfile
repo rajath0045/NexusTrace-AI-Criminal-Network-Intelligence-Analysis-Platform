@@ -1,11 +1,17 @@
 FROM node:22.13.0-bookworm-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+# Node 22.13.0's bundled Corepack signing keys predate current pnpm releases.
+# Pin Corepack before enabling the repository-pinned pnpm 11.19.0 shim.
+RUN apt-get update \
+  && apt-get install --yes --no-install-recommends python3 make g++ openssl \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install --global corepack@0.31.0 \
+  && corepack enable
 WORKDIR /app
 
 FROM base AS dependencies
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
@@ -18,7 +24,7 @@ ENV EVIDENCE_STORAGE_ROOT="/tmp/nexustrace-build-evidence"
 RUN pnpm build
 
 FROM base AS runtime-dependencies
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
 FROM node:22.13.0-bookworm-slim AS runner
@@ -26,7 +32,11 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
-RUN groupadd --system --gid 1001 nexustrace && useradd --system --uid 1001 --gid nexustrace nexustrace \
+RUN apt-get update \
+  && apt-get install --yes --no-install-recommends openssl \
+  && rm -rf /var/lib/apt/lists/* \
+  && groupadd --system --gid 1001 nexustrace \
+  && useradd --system --uid 1001 --gid nexustrace nexustrace \
   && mkdir -p /var/lib/nexustrace/evidence && chown -R nexustrace:nexustrace /var/lib/nexustrace
 COPY --from=runtime-dependencies --chown=nexustrace:nexustrace /app/node_modules ./node_modules
 COPY --from=builder --chown=nexustrace:nexustrace /app/.next/standalone ./

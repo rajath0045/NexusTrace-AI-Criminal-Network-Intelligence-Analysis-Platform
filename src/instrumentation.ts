@@ -6,6 +6,10 @@ export async function register() {
   try {
     const environment = assertProductionEnvironment();
     operationalLog.info("application.startup", { nodeEnv: process.env.NODE_ENV, appOrigin: environment.APP_ORIGIN ?? "development" });
+    if (environment.NEO4J_URI) {
+      const { processGraphProjectionOutbox } = await import("@/server/services/graph-projection-service");
+      void processGraphProjectionOutbox().then((summary) => operationalLog.info("graph.projection_startup_drain", summary));
+    }
   } catch (error) {
     operationalLog.error("application.configuration_invalid", { message: error instanceof Error ? error.message : "Unknown configuration error" });
     throw error;

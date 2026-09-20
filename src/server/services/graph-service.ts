@@ -12,6 +12,8 @@ import {
 import { assertCan } from "@/server/authorization/policy";
 import type { GraphRepository } from "@/server/graph/graph-repository";
 import { PrismaGraphRepository } from "@/server/graph/prisma-graph-repository";
+import { Neo4jGraphRepository } from "@/server/graph/neo4j-graph-repository";
+import { getNeo4jEnvironment } from "@/server/env";
 
 export class GraphService {
   constructor(private readonly repository: GraphRepository) {}
@@ -54,7 +56,13 @@ export class GraphService {
   }
 }
 
-const graphService = new GraphService(new PrismaGraphRepository());
+const canonicalGraphRepository = new PrismaGraphRepository();
+// Local/unit environments without NEO4J_* retain the established canonical
+// reader. Deployed relationship intelligence uses the projection query engine.
+const graphRepository: GraphRepository = getNeo4jEnvironment()
+  ? new Neo4jGraphRepository(canonicalGraphRepository)
+  : canonicalGraphRepository;
+const graphService = new GraphService(graphRepository);
 
 export const getGraphEntity = graphService.getEntity.bind(graphService);
 export const getDefaultGraphFocus = graphService.getDefaultFocus.bind(graphService);

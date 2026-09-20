@@ -347,6 +347,14 @@ export class PrismaGraphRepository implements GraphRepository {
             },
           },
         });
+        await transaction.graphProjectionEvent.create({
+          data: {
+            aggregateType: "GRAPH_RELATIONSHIP",
+            aggregateId: created.id,
+            eventType: "UPSERT",
+            requestedById: actor.userId,
+          },
+        });
         return created.id;
       });
 
@@ -394,6 +402,14 @@ export class PrismaGraphRepository implements GraphRepository {
           targetId: relationship.id,
           outcome: "SUCCESS",
           metadata: { previousState: relationship.verificationState },
+        },
+      });
+      await transaction.graphProjectionEvent.create({
+        data: {
+          aggregateType: "GRAPH_RELATIONSHIP",
+          aggregateId: relationship.id,
+          eventType: "UPSERT",
+          requestedById: actor.userId,
         },
       });
       return relationship.id;

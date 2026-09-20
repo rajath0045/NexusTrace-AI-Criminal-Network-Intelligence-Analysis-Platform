@@ -218,6 +218,7 @@ model User {
   verifiedRelationships GraphRelationship[]   @relation("RelationshipVerifier")
   auditEvents           AuditEvent[]
   workspaceLayouts      UserWorkspaceLayout[]
+  graphProjectionEvents GraphProjectionEvent[] @relation("GraphProjectionEventRequester")
   findingReviews        FindingReview[]          @relation("FindingReviewer")
   submittedIncidents    Incident[]              @relation("IncidentSubmitter")
   departmentVerifiedIncidents Incident[]         @relation("IncidentDepartmentVerifier")
@@ -230,6 +231,26 @@ model User {
 
   @@index([departmentId])
   @@index([role, active])
+}
+
+// This is an outbox only.  It is deliberately not a second domain model: the
+// payload is a projection request whose source remains the canonical rows.
+model GraphProjectionEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  aggregateType   String
+  aggregateId     String   @db.Uuid
+  eventType       String
+  requestedById   String?  @db.Uuid
+  requestedBy     User?    @relation("GraphProjectionEventRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  attempts        Int      @default(0)
+  availableAt     DateTime @default(now())
+  processedAt     DateTime?
+  lastError       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([processedAt, availableAt])
+  @@index([aggregateType, aggregateId])
 }
 
 model UserWorkspaceLayout {

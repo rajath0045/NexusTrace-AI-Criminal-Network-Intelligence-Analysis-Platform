@@ -5,6 +5,7 @@ import type { Core, ElementDefinition, NodeSingular, StylesheetJson } from "cyto
 import type { GraphEntityView } from "@/domain/graph";
 import { GraphEntityType, VerificationState } from "@/domain/model";
 import type { SerializedGraphEdge } from "./graph-view-model";
+import type { GraphPresentation } from "@/domain/graph-layout";
 
 interface NetworkCanvasProps {
   focusEntityId: string;
@@ -15,6 +16,9 @@ interface NetworkCanvasProps {
   focusMode: boolean;
   fitVersion: number;
   recenterVersion: number;
+  presentation: GraphPresentation;
+  customizeMode: boolean;
+  onPresentationChange: (update: Pick<GraphPresentation, "positions" | "edgeRoutes" | "zoom" | "pan">) => void;
   onNodeSelect: (entityId: string) => void;
   onEdgeSelect: (relationshipId: string) => void;
 }
@@ -124,7 +128,7 @@ function updateFocusMode(graph: Core, selectedNodeId: string | null, enabled: bo
   graph.edges().forEach((edge) => { if (depths.has(edge.source().id()) && depths.has(edge.target().id())) edge.removeClass("focus-dim").addClass("neighborhood-edge"); });
 }
 
-export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, selectedEdgeId, focusMode, fitVersion, recenterVersion, onNodeSelect, onEdgeSelect }: NetworkCanvasProps) {
+export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, selectedEdgeId, focusMode, fitVersion, recenterVersion, presentation, customizeMode, onPresentationChange, onNodeSelect, onEdgeSelect }: NetworkCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Core | null>(null);
   const selectedNodeIdRef = useRef(selectedNodeId);
@@ -135,9 +139,22 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
   useEffect(() => {
     let cancelled = false;
     const depths = depthsFromFocus(nodes, edges, focusEntityId);
+    const pairOffsets = new Map<string, number>();
+    const groupedEdges = new Map<string, SerializedGraphEdge[]>();
+    for (const edge of edges) {
+      const key = [edge.sourceId, edge.targetId].sort().join(":");
+      groupedEdges.set(key, [...(groupedEdges.get(key) ?? []), edge]);
+    }
+    for (const group of groupedEdges.values()) {
+      group.forEach((edge, index) => pairOffsets.set(edge.id, (index - (group.length - 1) / 2) * 22));
+    }
     const elements: ElementDefinition[] = [
-      ...nodes.map((node) => ({ data: { id: node.id, label: node.displayLabel, color: markerColors[node.entityType], icon: markerIcon(node.entityType), size: markerSize(depths.get(node.id), node.id === focusEntityId) }, classes: node.id === focusEntityId ? "focus-marker" : "" })),
-      ...edges.map((edge) => ({ data: { id: edge.id, source: edge.sourceId, target: edge.targetId }, classes: `${edge.strength.toLowerCase()} ${verificationClass(edge.verificationState)}` })),
+      ...nodes.map((node) => ({ data: { id: node.id, label: node.displayLabel, color: markerColors[node.entityType], icon: markerIcon(node.entityType), size: markerSize(depths.get(node.id), node.id === focusEntityId) }, position: presentation.positions[node.id], classes: node.id === focusEntityId ? "focus-marker" : "" })),
+      ...edges.map((edge) => ({ data: {
+        id: edge.id, source: edge.sourceId, target: edge.targetId,
+        label: titleCase(edge.relationshipType),
+        routeOffset: Object.hasOwn(presentation.edgeRoutes, edge.id) ? presentation.edgeRoutes[edge.id]! : pairOffsets.get(edge.id) ?? 0,
+      }, classes: `${edge.strength.toLowerCase()} ${verificationClass(edge.verificationState)}` })),
     ];
     void import("cytoscape").then(({ default: cytoscape }) => {
       if (cancelled || !containerRef.current) return;
@@ -145,8 +162,10 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const graph = cytoscape({
         container: containerRef.current, elements,
-        layout: { name: "breadthfirst", roots: [focusEntityId], directed: true, padding: 84, animate: false, spacingFactor: 1.75, avoidOverlap: true },
-        minZoom: 0.45, maxZoom: 2.4, wheelSensitivity: 0.16,
+        layout: Object.keys(presentation.positions).length > 0
+          ? { name: "preset", fit: true, padding: 84 }
+          : { name: presentation.algorithm, roots: [focusEntityId], directed: true, padding: 84, animate: false, spacingFactor: 1.75, avoidOverlap: true },
+        minZoom: 0.45, maxZoom: 2.4, wheelSensitivity: 0.16, autoungrabify: !customizeMode,
         style: [
           { selector: "node", style: { "background-color": "data(color)", "background-image": "data(icon)", "background-fit": "contain", "background-width": "54%", "background-height": "54%", width: "data(size)", height: "data(size)", label: "", color: "#eaf3ff", "font-size": 10, "font-weight": 650, "text-valign": "bottom", "text-margin-y": 9, "text-wrap": "ellipsis", "text-max-width": 116, "border-width": 2, "border-color": "#bedafa", "overlay-opacity": 0, "underlay-color": "#3e91e9", "underlay-opacity": 0, "underlay-padding": 5 } },
           { selector: "node.show-marker-label", style: { label: "data(label)" } },
@@ -155,7 +174,7 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
           { selector: "node.hovered-marker", style: { "border-width": 3, "border-color": "#d5ecff", "underlay-opacity": 0.28, "underlay-padding": 8 } },
           { selector: "node.edge-endpoint", style: { "border-color": "#cce8ff", "underlay-opacity": 0.26, "underlay-padding": 7 } },
           { selector: "node.focus-dim", style: { opacity: 0.27 } }, { selector: "node.neighborhood-0", style: { opacity: 1 } }, { selector: "node.neighborhood-1", style: { opacity: 0.92 } }, { selector: "node.neighborhood-2", style: { opacity: 0.64 } }, { selector: "node.neighborhood-3", style: { opacity: 0.42 } },
-          { selector: "edge", style: { width: 1.5, "line-color": "#536b87", "target-arrow-color": "#536b87", "target-arrow-shape": "triangle", "arrow-scale": 0.7, "curve-style": "bezier", opacity: 0.72 } },
+          { selector: "edge", style: { width: 1.5, "line-color": "#536b87", "target-arrow-color": "#536b87", "target-arrow-shape": "triangle", "arrow-scale": 0.7, "curve-style": "unbundled-bezier", "control-point-distances": "data(routeOffset)", "control-point-weights": 0.5, label: "data(label)", color: "#bcd0e6", "font-size": 8, "font-weight": 650, "text-rotation": "autorotate", "text-background-color": "#08101b", "text-background-opacity": 0.86, "text-background-padding": 2, "text-background-shape": "roundrectangle", opacity: 0.72 } },
           { selector: "edge.primary", style: { width: 3.2, "line-color": "#ff365e", "target-arrow-color": "#ff365e", opacity: 0.96 } }, { selector: "edge.secondary", style: { width: 2.1, "line-color": "#2f9bff", "target-arrow-color": "#2f9bff", opacity: 0.82 } }, { selector: "edge.tertiary", style: { width: 1.7, "line-color": "#f5db45", "target-arrow-color": "#f5db45", opacity: 0.72 } },
           { selector: "edge.pending", style: { "line-style": "dashed", opacity: 0.58 } }, { selector: "edge.changes-requested", style: { "line-style": "dashed", opacity: 0.48 } }, { selector: "edge.rejected", style: { "line-style": "dotted", opacity: 0.32 } }, { selector: "edge.focus-dim", style: { opacity: 0.16 } }, { selector: "edge.neighborhood-edge", style: { opacity: 0.84 } }, { selector: "edge.marker-selected", style: { width: 4.6, "line-color": "#d8ebff", "target-arrow-color": "#d8ebff", opacity: 1 } },
           { selector: "node.hover-dim", style: { opacity: 0.3 } }, { selector: "edge.hover-dim", style: { opacity: 0.14 } }, { selector: "edge.hovered-connection", style: { width: 4, "line-color": "#d8ebff", "target-arrow-color": "#d8ebff", opacity: 1 } },
@@ -179,13 +198,19 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
       graph.on("mouseout", "edge", (event) => { graph.elements().removeClass("hover-dim hovered-connection"); event.target.source().removeClass("edge-endpoint"); event.target.target().removeClass("edge-endpoint"); setTooltip(null); });
       graph.on("tap", "node", (event) => onNodeSelect(event.target.id()));
       graph.on("tap", "edge", (event) => onEdgeSelect(event.target.id()));
+      if (customizeMode) graph.nodes().grabify(); else graph.nodes().ungrabify();
+      graph.on("dragfree", "node", () => {
+        if (!customizeMode) return;
+        const positions = Object.fromEntries(graph.nodes().map((node) => [node.id(), node.position()]));
+        onPresentationChange({ positions, edgeRoutes: presentation.edgeRoutes, zoom: graph.zoom(), pan: graph.pan() });
+      });
       graph.on("zoom", () => updateSemanticLabels(graph, focusEntityId, selectedNodeIdRef.current));
       graphRef.current = graph;
       updateSemanticLabels(graph, focusEntityId, selectedNodeIdRef.current);
       if (!reducedMotion) graph.animate({ fit: { eles: graph.elements(), padding: 64 } }, { duration: 150 });
     });
     return () => { cancelled = true; graphRef.current?.destroy(); graphRef.current = null; };
-  }, [edges, focusEntityId, nodes, onEdgeSelect, onNodeSelect]);
+  }, [customizeMode, edges, focusEntityId, nodes, onEdgeSelect, onNodeSelect, onPresentationChange, presentation]);
 
   useEffect(() => {
     const graph = graphRef.current;
@@ -198,6 +223,11 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
   }, [focusEntityId, focusMode, selectedEdgeId, selectedNodeId]);
 
   useEffect(() => { graphRef.current?.fit(undefined, 64); }, [fitVersion]);
+  useEffect(() => {
+    const nodes = graphRef.current?.nodes();
+    if (!nodes) return;
+    if (customizeMode) nodes.grabify(); else nodes.ungrabify();
+  }, [customizeMode]);
   useEffect(() => {
     const graph = graphRef.current;
     const focus = graph?.$id(focusEntityId);

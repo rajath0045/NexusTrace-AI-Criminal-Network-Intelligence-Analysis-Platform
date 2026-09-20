@@ -1,13 +1,14 @@
 "use client";
 
-import { Layers3, LocateFixed, Map, Network, SlidersHorizontal, X } from "lucide-react";
+import { Layers3, LocateFixed, Map, MousePointer2, Network, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GraphEntityType, RelationshipStrength, VerificationState } from "@/domain/model";
 import type { WorkspaceLayoutItem } from "@/domain/workspace";
 import { WorkspaceGrid } from "@/features/workspace/workspace-grid";
 import { GeographicNetworkMap } from "./geographic-network-map";
 import type { SerializedGeographicConnection, SerializedGeographicProjection } from "./geographic-view-model";
-import type { SerializedRelationshipDetail } from "./graph-view-model";
+import type { SerializedGraphNeighborhood, SerializedRelationshipDetail } from "./graph-view-model";
+import type { GraphPresentation } from "@/domain/graph-layout";
 import { NetworkCanvas } from "./network-canvas";
 import {
   ActivityQueue,
@@ -40,6 +41,7 @@ type TimeRange = "24H" | "7D" | "45D" | "CUSTOM";
 const relationshipTiers = [RelationshipStrength.Primary, RelationshipStrength.Secondary, RelationshipStrength.Tertiary] as const;
 const verificationFilters = [VerificationState.Verified, VerificationState.Pending, VerificationState.ChangesRequested, VerificationState.Rejected] as const;
 const geographicEntityTypes = [GraphEntityType.Person, GraphEntityType.Property, GraphEntityType.Vehicle, GraphEntityType.Phone, GraphEntityType.Device, GraphEntityType.Incident, GraphEntityType.Location] as const;
+const defaultPresentation: GraphPresentation = { version: 1, positions: {}, edgeRoutes: {}, algorithm: "breadthfirst", filters: { relationshipTypes: [] } };
 
 function rangeDates(range: Exclude<TimeRange, "CUSTOM">): { startTime: string; endTime: string } {
   const end = new Date();
@@ -60,6 +62,8 @@ function connectionForRelationship(projection: SerializedGeographicProjection, r
 
 export function NetworkExplorer({ initialProjection, initialLayoutItems, actions }: NetworkExplorerProps) {
   const [projection, setProjection] = useState(initialProjection);
+  const [relationshipGraph, setRelationshipGraph] = useState<SerializedGraphNeighborhood>(initialProjection.graph);
+  const [relationshipGraphError, setRelationshipGraphError] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>("map");
   const [strengths, setStrengths] = useState<RelationshipStrength[]>(initialProjection.graph.activeFilters.strengths);
   const [verificationStates, setVerificationStates] = useState<VerificationState[]>(initialProjection.graph.activeFilters.verificationStates);
@@ -79,17 +83,95 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems, actions
   const [error, setError] = useState<string | null>(null);
   const [relationshipDetails, setRelationshipDetails] = useState<Record<string, SerializedRelationshipDetail>>({});
   const [provenanceLoading, setProvenanceLoading] = useState(false);
+  const [customizeMode, setCustomizeMode] = useState(false);
+  const [presentation, setPresentation] = useState<GraphPresentation>(defaultPresentation);
   const projectionRequestId = useRef(0);
   const projectionAbortController = useRef<AbortController | null>(null);
+  const layoutSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const availableRelationshipTypes = useMemo(() => [...new Set(projection.graph.edges.map((edge) => edge.relationshipType))].sort(), [projection.graph.edges]);
-  const filteredEdges = useMemo(() => relationshipTypes.length === 0 ? projection.graph.edges : projection.graph.edges.filter((edge) => relationshipTypes.includes(edge.relationshipType)), [projection.graph.edges, relationshipTypes]);
+  const availableRelationshipTypes = useMemo(() => [...new Set(relationshipGraph.edges.map((edge) => edge.relationshipType))].sort(), [relationshipGraph.edges]);
+  const filteredEdges = useMemo(() => relationshipTypes.length === 0 ? relationshipGraph.edges : relationshipGraph.edges.filter((edge) => relationshipTypes.includes(edge.relationshipType)), [relationshipGraph.edges, relationshipTypes]);
   const visibleConnectionIds = useMemo(() => new Set(filteredEdges.map((edge) => edge.id)), [filteredEdges]);
   const filteredConnections = useMemo(() => relationshipTypes.length === 0 ? projection.connections : projection.connections.filter((connection) => connection.relationshipIds.length === 0 || connection.relationshipIds.some((id) => visibleConnectionIds.has(id))), [projection.connections, relationshipTypes.length, visibleConnectionIds]);
   const mapProjection = useMemo(() => ({ ...projection, connections: filteredConnections }), [filteredConnections, projection]);
   const selectedConnection = useMemo(() => projection.connections.find((item) => item.id === selectedConnectionId) ?? null, [projection.connections, selectedConnectionId]);
 
-  useEffect(() => () => projectionAbortController.current?.abort(), []);
+  useEffect(() => () => { projectionAbortController.current?.abort(); if (layoutSaveTimer.current) clearTimeout(layoutSaveTimer.current); }, []);
+
+  useEffect(() => {
+    if (view !== "relationship") return;
+    const controller = new AbortController();
+    const query = new URLSearchParams({ focus: projection.focusEntity.id, hops: String(hops), strengths: strengths.join(","), verificationStates: verificationStates.join(",") });
+    void fetch(`/api/network?${query.toString()}`, { credentials: "same-origin", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(response.status === 503 ? "Relationship intelligence temporarily unavailable." : "The authorized relationship graph could not be loaded.");
+        const payload = await response.json() as SerializedGraphNeighborhood | SerializedGeographicProjection;
+        // Geographic projection is accepted only as a compatibility response
+        // while an older server is rolling out; deployed Relationship requests
+        // receive the dedicated bounded Neo4j graph shape.
+        const graph = "graph" in payload ? payload.graph : payload;
+        return Array.isArray(graph.edges) ? graph : null;
+      })
+      .then((graph) => { if (!controller.signal.aborted && graph) { setRelationshipGraph(graph); setRelationshipGraphError(null); } })
+      .catch((loadError: unknown) => {
+        if (!controller.signal.aborted && !(loadError instanceof DOMException && loadError.name === "AbortError")) setRelationshipGraphError(loadError instanceof Error ? loadError.message : "The authorized relationship graph could not be loaded.");
+      });
+    return () => controller.abort();
+  }, [hops, projection.focusEntity.id, strengths, verificationStates, view]);
+
+  useEffect(() => {
+    if (view !== "relationship") return;
+    const controller = new AbortController();
+    const request = fetch(`/api/network/layout?focus=${projection.focusEntity.id}`, { credentials: "same-origin", signal: controller.signal });
+    // Existing component tests intentionally stub only graph projection calls.
+    // Treat an absent optional layout response as the normal empty layout.
+    if (!request || typeof request.then !== "function") return;
+    void request
+      .then(async (response) => response.ok ? await response.json() as GraphPresentation : defaultPresentation)
+      .then((saved) => { if (!controller.signal.aborted) { setPresentation(saved); setRelationshipTypes(saved.filters.relationshipTypes); } })
+      .catch(() => { if (!controller.signal.aborted) setPresentation(defaultPresentation); });
+    return () => controller.abort();
+  }, [projection.focusEntity.id, view]);
+
+  const persistPresentation = useCallback((next: GraphPresentation) => {
+    if (layoutSaveTimer.current) clearTimeout(layoutSaveTimer.current);
+    layoutSaveTimer.current = setTimeout(() => {
+      void fetch(`/api/network/layout?focus=${projection.focusEntity.id}`, { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
+    }, 350);
+  }, [projection.focusEntity.id]);
+
+  const updatePresentation = useCallback((update: Pick<GraphPresentation, "positions" | "edgeRoutes" | "zoom" | "pan">) => {
+    setPresentation((current) => {
+      const next = { ...current, ...update, filters: { relationshipTypes }, version: 1 as const };
+      persistPresentation(next);
+      return next;
+    });
+  }, [persistPresentation, relationshipTypes]);
+
+  const resetPresentation = useCallback(() => {
+    if (layoutSaveTimer.current) clearTimeout(layoutSaveTimer.current);
+    void fetch(`/api/network/layout?focus=${projection.focusEntity.id}`, { method: "DELETE", credentials: "same-origin" })
+      .then(async (response) => response.ok ? await response.json() as GraphPresentation : defaultPresentation)
+      .then((next) => setPresentation(next));
+  }, [projection.focusEntity.id]);
+
+  const setLayoutAlgorithm = (algorithm: GraphPresentation["algorithm"]) => {
+    setPresentation((current) => {
+      const next = { ...current, algorithm, positions: {}, version: 1 as const };
+      persistPresentation(next);
+      return next;
+    });
+    setFitVersion((value) => value + 1);
+  };
+  const adjustSelectedRoute = (delta: number) => {
+    const relationshipId = selectedConnection?.relationshipIds[0];
+    if (!relationshipId) return;
+    setPresentation((current) => {
+      const next = { ...current, edgeRoutes: { ...current.edgeRoutes, [relationshipId]: (current.edgeRoutes[relationshipId] ?? 0) + delta }, version: 1 as const };
+      persistPresentation(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const relationshipIds = selectedConnection?.relationshipIds ?? [];
@@ -132,6 +214,7 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems, actions
       const next = await response.json() as SerializedGeographicProjection;
       if (requestId !== projectionRequestId.current || controller.signal.aborted) return;
       setProjection(next);
+      setRelationshipGraph(next.graph);
       setSelectedEntityId(next.focusEntity.id);
       setSelectedConnectionId(null);
       setRelationshipDetails({});
@@ -215,13 +298,13 @@ export function NetworkExplorer({ initialProjection, initialLayoutItems, actions
       </aside>
 
       <main className="network-primary-surface" aria-busy={loading}>
-        <div className="network-surface-toolbar"><div className="network-view-switch" role="group" aria-label="Network view"><button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}><Map aria-hidden="true" /> Geographic</button><button type="button" aria-pressed={view === "relationship"} onClick={() => setView("relationship")}><Network aria-hidden="true" /> Relationship</button></div><div className="network-map-actions"><button type="button" onClick={() => setFitVersion((value) => value + 1)}>Fit</button><button type="button" onClick={() => setRecenterVersion((value) => value + 1)}><LocateFixed aria-hidden="true" /> Recenter</button><button type="button" onClick={() => { setSelectedEntityId(projection.focusEntity.id); setSelectedConnectionId(null); setRelationshipDetails({}); setProvenanceLoading(false); setRecenterVersion((value) => value + 1); }}>Clear focus</button><button type="button" aria-expanded={legendOpen} onClick={() => setLegendOpen((value) => !value)}><Layers3 aria-hidden="true" /> Legend</button></div></div>
+        <div className="network-surface-toolbar"><div className="network-view-switch" role="group" aria-label="Network view"><button type="button" aria-pressed={view === "map"} onClick={() => setView("map")}><Map aria-hidden="true" /> Geographic</button><button type="button" aria-pressed={view === "relationship"} onClick={() => setView("relationship")}><Network aria-hidden="true" /> Relationship</button></div><div className="network-map-actions"><button type="button" onClick={() => setFitVersion((value) => value + 1)}>Fit</button><button type="button" onClick={() => setRecenterVersion((value) => value + 1)}><LocateFixed aria-hidden="true" /> Recenter</button><button type="button" onClick={() => { setSelectedEntityId(projection.focusEntity.id); setSelectedConnectionId(null); setRelationshipDetails({}); setProvenanceLoading(false); setRecenterVersion((value) => value + 1); }}>Clear focus</button>{view === "relationship" ? <><button type="button" aria-pressed={customizeMode} onClick={() => setCustomizeMode((value) => !value)}><MousePointer2 aria-hidden="true" /> {customizeMode ? "Done" : "Customize"}</button><label className="network-layout-select">Layout <select aria-label="Relationship graph layout" value={presentation.algorithm} onChange={(event) => setLayoutAlgorithm(event.target.value as GraphPresentation["algorithm"])}><option value="breadthfirst">Hierarchy</option><option value="cose">Force directed</option><option value="concentric">Concentric</option><option value="circle">Radial</option></select></label>{selectedConnection?.relationshipIds[0] ? <><button type="button" onClick={() => adjustSelectedRoute(-28)}>Route ←</button><button type="button" onClick={() => adjustSelectedRoute(28)}>Route →</button></> : null}<button type="button" onClick={resetPresentation}><RotateCcw aria-hidden="true" /> Reset layout</button></> : null}<button type="button" aria-expanded={legendOpen} onClick={() => setLegendOpen((value) => !value)}><Layers3 aria-hidden="true" /> Legend</button></div></div>
         {legendOpen ? <GraphLegend /> : null}
         {error ? <p className="network-alert" role="alert">{error}</p> : null}
         {loading ? <div className="network-loading">Refreshing authorized geographic projection…</div> : null}
         <section className="network-investigation-canvas">
           <div className="network-canvas-header"><div><span className="eyebrow">Shared focus</span><strong>{projection.focusEntity.displayLabel}</strong><span>{titleCase(projection.focusEntity.entityType)} · {hops} hop{hops === 1 ? "" : "s"}</span></div><p className="network-canvas-instruction">Select an entity to pivot the map, relationship graph, timeline, and analysis panels together.</p></div>
-          {view === "map" ? <GeographicNetworkMap projection={mapProjection} selectedEntityId={selectedEntityId} selectedConnectionId={selectedConnectionId} visibleEntityTypes={entityTypes} showNetwork={layers.network} showObservations={layers.observations} heatmap={layers.heatmap} fitVersion={fitVersion} recenterVersion={recenterVersion} onEntitySelect={pivotFocus} onConnectionSelect={selectConnection} onSwitchToRelationship={() => setView("relationship")} /> : filteredEdges.length === 0 ? <div className="network-empty"><strong>NO RELATIONSHIPS</strong><span>No relationships match the current filters. Enable another relationship type, tier, verification state, or traversal depth.</span></div> : <NetworkCanvas focusEntityId={projection.focusEntity.id} nodes={projection.graph.nodes} edges={filteredEdges} selectedNodeId={selectedEntityId} selectedEdgeId={selectedConnection?.relationshipIds[0] ?? null} focusMode={selectedEntityId !== null && selectedEntityId !== projection.focusEntity.id} fitVersion={fitVersion} recenterVersion={recenterVersion} onNodeSelect={pivotFocus} onEdgeSelect={selectRelationship} />}
+          {view === "map" ? <GeographicNetworkMap projection={mapProjection} selectedEntityId={selectedEntityId} selectedConnectionId={selectedConnectionId} visibleEntityTypes={entityTypes} showNetwork={layers.network} showObservations={layers.observations} heatmap={layers.heatmap} fitVersion={fitVersion} recenterVersion={recenterVersion} onEntitySelect={pivotFocus} onConnectionSelect={selectConnection} onSwitchToRelationship={() => setView("relationship")} /> : relationshipGraphError ? <div className="network-empty"><strong>RELATIONSHIP INTELLIGENCE UNAVAILABLE</strong><span>{relationshipGraphError}</span></div> : filteredEdges.length === 0 ? <div className="network-empty"><strong>NO RELATIONSHIPS</strong><span>No relationships match the current filters. Enable another relationship type, tier, verification state, or traversal depth.</span></div> : <NetworkCanvas focusEntityId={relationshipGraph.focusEntity.id} nodes={relationshipGraph.nodes} edges={filteredEdges} selectedNodeId={selectedEntityId} selectedEdgeId={selectedConnection?.relationshipIds[0] ?? null} focusMode={selectedEntityId !== null && selectedEntityId !== relationshipGraph.focusEntity.id} fitVersion={fitVersion} recenterVersion={recenterVersion} presentation={presentation} customizeMode={customizeMode} onPresentationChange={updatePresentation} onNodeSelect={pivotFocus} onEdgeSelect={selectRelationship} />}
         </section>
       </main>
 

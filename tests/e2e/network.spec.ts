@@ -36,8 +36,13 @@ test("authorized geographic network console stays synchronized", async ({ page }
   await expect(page.getByText("Residence X · Indiranagar", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Property Y · Central Bengaluru", { exact: true }).first()).toBeVisible();
 
+  const relationshipResponse = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/network" && response.status() === 200);
   await page.getByRole("button", { name: "Relationship", exact: true }).click();
+  await relationshipResponse;
   await expect(page.getByLabel("Criminal network investigation graph")).toBeVisible();
+  await page.getByRole("button", { name: "Customize", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Done", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await page.getByRole("button", { name: "Geographic", exact: true }).click();
   await expect(page.locator(".network-geographic-map .maplibregl-canvas")).toBeVisible();
   await expect(page.locator('.network-geographic-map[data-map-loaded="true"]')).toBeVisible({ timeout: 20_000 });

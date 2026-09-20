@@ -45,6 +45,9 @@ export async function GET(request: Request) {
       }
       if (error.code === "VALIDATION") return new Response("Graph request is invalid.", { status: 400 });
     }
+    if (error && typeof error === "object" && "code" in error && error.code === "GRAPH_UNAVAILABLE") {
+      return new Response("Relationship intelligence temporarily unavailable.", { status: 503 });
+    }
     return new Response("Graph request failed.", { status: 500 });
   }
 }

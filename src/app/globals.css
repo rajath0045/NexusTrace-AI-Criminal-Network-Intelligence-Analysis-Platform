@@ -1408,6 +1408,9 @@ textarea {
 .network-surface-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.55rem; margin-bottom: 0.55rem; padding: 0.5rem; }
 .network-view-switch,
 .network-map-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.network-layout-select { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2rem; padding: 0.25rem 0.45rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #080e17; color: var(--text-muted); font-size: 0.6rem; }
+.network-layout-select select { max-width: 7.8rem; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
+.network-surface-toolbar button[aria-pressed="true"] { border-color: #7fc1ff; background: rgb(47 155 255 / 16%); color: #eaf5ff; }
 .network-surface-toolbar button { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2rem; padding: 0.4rem 0.58rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #080e17; color: var(--text-muted); font-size: 0.62rem; cursor: pointer; }
 .network-surface-toolbar button svg { width: 0.82rem; height: 0.82rem; }
 .network-view-switch button[aria-pressed="true"] { border-color: var(--accent-strong); background: rgb(47 155 255 / 14%); color: #eaf5ff; }
