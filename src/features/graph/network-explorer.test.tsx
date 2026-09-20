@@ -73,6 +73,7 @@ describe("NetworkExplorer", () => {
     expect(screen.getByRole("button", { name: "Expand connections" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Collapse" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Auto arrange" })).toBeVisible();
+    expect(screen.getByText("2 entities · 1 relationships · semantic zoom")).toBeVisible();
   });
 
   it("keeps progressive graph expansion bounded at three hops", async () => {

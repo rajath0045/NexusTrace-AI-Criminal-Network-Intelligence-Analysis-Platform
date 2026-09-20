@@ -7,7 +7,9 @@ import {
   graphEntityIcon,
   nodeBadgeSize,
   parallelEdgeOffsets,
+  shouldShowEdgeLabel,
   shouldShowNodeLabel,
+  shouldRunLayout,
 } from "./network-canvas";
 
 describe("network marker presentation", () => {
@@ -41,8 +43,15 @@ describe("network marker presentation", () => {
     expect(shouldShowNodeLabel({ isFocus: true, isSelected: false, zoom: 0.7 })).toBe(true);
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: true, zoom: 0.7 })).toBe(true);
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.6 })).toBe(false);
-    expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.7 })).toBe(true);
+    expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.7 })).toBe(false);
+    expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.85 })).toBe(true);
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 1.25 })).toBe(true);
+  });
+
+  it("keeps relationship labels semantic and selected labels available at every zoom", () => {
+    expect(shouldShowEdgeLabel({ isSelected: false, zoom: 0.84 })).toBe(false);
+    expect(shouldShowEdgeLabel({ isSelected: false, zoom: 0.85 })).toBe(true);
+    expect(shouldShowEdgeLabel({ isSelected: true, zoom: 0.45 })).toBe(true);
   });
 
   it("uses distinct SVG entity icons rather than color-only graph markers", () => {
@@ -51,14 +60,25 @@ describe("network marker presentation", () => {
     expect(graphEntityIcon(GraphEntityType.Vehicle)).not.toEqual(graphEntityIcon(GraphEntityType.Property));
     expect(graphEntityIcon("UNKNOWN_ENTITY")).toContain("preserveAspectRatio%3D%22xMidYMid%20meet%22");
     expect(entityNodeVisual("UNKNOWN_ENTITY").fill).toBe("#253245");
+    expect(entityNodeVisual(GraphEntityType.Person).accent).toBe("#64c8ff");
+    expect(graphEntityIcon(GraphEntityType.Person)).toContain("%2364c8ff");
     expect(Object.values(GraphEntityType).every((type) => graphEntityIcon(type).includes("preserveAspectRatio"))).toBe(true);
   });
 
   it("uses balanced circular badge sizes for focus and normal entities", () => {
     expect(nodeBadgeSize(0, true)).toBe(58);
-    expect(nodeBadgeSize(1, false)).toBe(48);
-    expect(nodeBadgeSize(2, false)).toBe(46);
-    expect(nodeBadgeSize(3, false)).toBe(44);
+    expect(nodeBadgeSize(1, false)).toBe(52);
+    expect(nodeBadgeSize(2, false)).toBe(48);
+    expect(nodeBadgeSize(3, false)).toBe(48);
+  });
+
+  it("reruns a layout only for explicit arrangement changes, not viewport persistence", () => {
+    const initial = { algorithm: "cose" as const, hadPositions: false, autoArrangeVersion: 0 };
+    expect(shouldRunLayout(null, initial)).toBe(false);
+    expect(shouldRunLayout(initial, initial)).toBe(false);
+    expect(shouldRunLayout(initial, { ...initial, autoArrangeVersion: 1 })).toBe(true);
+    expect(shouldRunLayout(initial, { ...initial, algorithm: "circle" })).toBe(true);
+    expect(shouldRunLayout(initial, { ...initial, hadPositions: true })).toBe(false);
   });
 
   it("separates parallel relationships with deterministic curved-route offsets", () => {

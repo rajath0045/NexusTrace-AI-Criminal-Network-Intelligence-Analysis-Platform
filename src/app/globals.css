@@ -1197,6 +1197,8 @@ textarea {
 
 .network-canvas-header strong { font-size: 0.95rem; }
 .network-canvas-header strong + span { color: var(--text-muted); font-size: 0.72rem; }
+.network-graph-status { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; color: #9db8d3; font-size: 0.61rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.network-graph-status i { width: 0.38rem; height: 0.38rem; border-radius: 100%; background: #56d1c6; box-shadow: 0 0 0 3px rgb(86 209 198 / 10%); }
 .network-canvas-instruction { max-width: 20rem; margin: 0; color: var(--text-muted); font-size: 0.68rem; line-height: 1.45; text-align: right; }
 
 .network-canvas {
@@ -1205,8 +1207,13 @@ textarea {
   height: calc(38rem - 4.75rem);
   min-height: 33.25rem;
   background-color: #050a12;
-  background-image: radial-gradient(rgb(102 153 207 / 18%) 0.6px, transparent 0.6px);
-  background-size: 20px 20px;
+  background-image:
+    radial-gradient(ellipse at 50% 48%, rgb(36 103 172 / 18%), transparent 52%),
+    radial-gradient(circle at 18% 22%, rgb(55 146 221 / 9%), transparent 24%),
+    linear-gradient(rgb(107 164 218 / 8%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(107 164 218 / 8%) 1px, transparent 1px);
+  background-position: center, center, center, center;
+  background-size: auto, auto, 24px 24px, 24px 24px;
 }
 
 .network-legend,
@@ -1251,6 +1258,14 @@ textarea {
 .network-legend-popover .legend-secondary { border-color: #5f86b5; }
 .network-legend-popover .legend-tertiary { border-style: dashed; border-color: #536b87; }
 .network-legend-popover .legend-dotted { border-style: dotted; }
+.network-legend-popover .legend-node-person,
+.network-legend-popover .legend-node-device,
+.network-legend-popover .legend-node-place,
+.network-legend-popover .legend-node-incident { border-radius: 100%; }
+.network-legend-popover .legend-node-person { border-color: #77baf1; background: #183c5a; }
+.network-legend-popover .legend-node-device { border-color: #7ec9d8; background: #1a4050; }
+.network-legend-popover .legend-node-place { border-color: #9bbbed; background: #223c59; }
+.network-legend-popover .legend-node-incident { border-color: #f1aa82; background: #52352d; }
 
 .network-graph-tooltip {
   position: absolute;
