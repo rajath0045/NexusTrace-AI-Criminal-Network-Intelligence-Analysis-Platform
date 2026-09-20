@@ -7,6 +7,8 @@ import { UserRole } from "@/domain/model";
 import { createSession, destroyCurrentSession } from "@/server/auth/session";
 import { hashPassword, verifyPassword } from "@/server/auth/password";
 import { prisma } from "@/server/db/client";
+import { operationalLog } from "@/server/observability/logger";
+import { takeRateLimit } from "@/server/security/rate-limit";
 import { evaluateLoginAttempt } from "./evaluate-login-attempt";
 
 const loginSchema = z.object({
@@ -46,6 +48,12 @@ export async function loginAction(
   }
 
   const email = parsed.data.email.toLowerCase();
+  try {
+    takeRateLimit("login", createHash("sha256").update(email).digest("hex"));
+  } catch {
+    operationalLog.warn("authentication.rate_limited");
+    return { error: "Too many sign-in attempts. Try again shortly." };
+  }
   const user = await prisma.user.findUnique({ where: { email } });
   const comparisonHash =
     user?.passwordHash ?? (await hashPassword("invalid-credential-comparison"));
@@ -79,6 +87,7 @@ export async function loginAction(
   });
 
   if (!authenticated || !user) {
+    operationalLog.warn("authentication.denied", { outcome: attempt.outcome });
     if (attempt.outcome === "ROLE_MISMATCH") {
       return {
         error: "These credentials are not authorized for the selected access level.",
@@ -89,6 +98,7 @@ export async function loginAction(
   }
 
   await createSession(user.id);
+  operationalLog.info("authentication.succeeded", { actorId: user.id, role: user.role });
   redirect("/dashboard");
 }
 

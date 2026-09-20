@@ -5,6 +5,7 @@ import {
   type Capability,
 } from "@/domain/auth";
 import { UserRole } from "@/domain/model";
+import { operationalLog } from "@/server/observability/logger";
 
 export type { Actor, Capability } from "@/domain/auth";
 
@@ -38,6 +39,7 @@ export function can(actor: Actor, capability: Capability): boolean {
 
 export function assertCan(actor: Actor, capability: Capability): void {
   if (!can(actor, capability)) {
+    operationalLog.warn("authorization.denied", { actorId: actor.userId, role: actor.role, capability });
     throw new AuthorizationError();
   }
 }

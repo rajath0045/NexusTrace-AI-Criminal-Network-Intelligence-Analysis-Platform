@@ -33,3 +33,11 @@ export class StorageError extends Error {
     this.name = "StorageError";
   }
 }
+
+export class RateLimitError extends Error {
+  readonly code = "RATE_LIMITED";
+
+  constructor(message = "Too many requests. Try again shortly.") {
+    super(message);
+  }
+}

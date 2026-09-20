@@ -2,6 +2,9 @@ import { LocationObservationType, RelationshipStrength, VerificationState } from
 import { serializeGeographicProjection } from "@/features/graph/geographic-view-model";
 import { getCurrentActor } from "@/server/auth/session";
 import { getGeographicProjection } from "@/server/services/geography-service";
+import { RateLimitError } from "@/domain/errors";
+import { takeRateLimit } from "@/server/security/rate-limit";
+import { operationalLog } from "@/server/observability/logger";
 
 function parseList<T extends string>(value: string | null, allowed: readonly T[]): T[] | undefined {
   if (!value) return undefined;
@@ -17,6 +20,11 @@ function optionalDate(value: string | null): Date | undefined {
 export async function GET(request: Request) {
   const actor = await getCurrentActor();
   if (!actor) return new Response("Authentication required.", { status: 401 });
+  try {
+    takeRateLimit("investigation", actor.userId);
+  } catch (error) {
+    return new Response(error instanceof RateLimitError ? error.message : "Too many requests.", { status: 429 });
+  }
   const search = new URL(request.url).searchParams;
   const focusEntityId = search.get("focus");
   if (!focusEntityId) return new Response("Geographic request is invalid.", { status: 400 });
@@ -34,6 +42,7 @@ export async function GET(request: Request) {
     });
     return Response.json(serializeGeographicProjection(projection));
   } catch (error) {
+    operationalLog.error("network.geographic_query_failed", { actorId: actor.userId, message: error instanceof Error ? error.message : "Unknown geographic graph error" });
     if (error && typeof error === "object" && "code" in error) {
       if (error.code === "NOT_FOUND" || error.code === "FORBIDDEN") return new Response("Geographic investigation context not found.", { status: 404 });
       if (error.code === "VALIDATION") return new Response("Geographic request is invalid.", { status: 400 });

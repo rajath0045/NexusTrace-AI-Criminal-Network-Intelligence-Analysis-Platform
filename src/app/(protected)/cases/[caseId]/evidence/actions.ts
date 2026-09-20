@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { evidenceMetadataInputSchema, type EvidenceFile } from "@/domain/evidence";
 import { getCurrentActor } from "@/server/auth/session";
 import { attachEvidence } from "@/server/services/evidence-service";
+import { takeRateLimit } from "@/server/security/rate-limit";
 
 export interface AttachEvidenceState {
   error?: string;
@@ -36,6 +37,7 @@ export async function attachEvidenceAction(
   if (!metadata.success) return { error: "Review the highlighted fields.", fieldErrors };
 
   try {
+    takeRateLimit("evidence", actor.userId);
     await attachEvidence(actor, caseId, file as EvidenceFile, metadata.data);
     revalidatePath(`/cases/${caseId}`);
     return { success: true };
