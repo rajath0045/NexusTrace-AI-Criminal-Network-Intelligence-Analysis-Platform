@@ -3,7 +3,9 @@ import { EvidenceConfidence, GraphEntityType, RelationshipStrength, Verification
 import {
   buildEdgeTooltip,
   buildNodeTooltip,
+  entityNodeVisual,
   graphEntityIcon,
+  nodeBadgeSize,
   parallelEdgeOffsets,
   shouldShowNodeLabel,
 } from "./network-canvas";
@@ -38,7 +40,8 @@ describe("network marker presentation", () => {
   it("shows labels only for focus/selected markers or at a useful zoom level", () => {
     expect(shouldShowNodeLabel({ isFocus: true, isSelected: false, zoom: 0.7 })).toBe(true);
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: true, zoom: 0.7 })).toBe(true);
-    expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.7 })).toBe(false);
+    expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.6 })).toBe(false);
+    expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.7 })).toBe(true);
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 1.25 })).toBe(true);
   });
 
@@ -46,6 +49,16 @@ describe("network marker presentation", () => {
     expect(graphEntityIcon(GraphEntityType.Person)).toContain("data:image/svg+xml");
     expect(graphEntityIcon(GraphEntityType.Person)).not.toEqual(graphEntityIcon(GraphEntityType.Phone));
     expect(graphEntityIcon(GraphEntityType.Vehicle)).not.toEqual(graphEntityIcon(GraphEntityType.Property));
+    expect(graphEntityIcon("UNKNOWN_ENTITY")).toContain("preserveAspectRatio%3D%22xMidYMid%20meet%22");
+    expect(entityNodeVisual("UNKNOWN_ENTITY").fill).toBe("#253245");
+    expect(Object.values(GraphEntityType).every((type) => graphEntityIcon(type).includes("preserveAspectRatio"))).toBe(true);
+  });
+
+  it("uses balanced circular badge sizes for focus and normal entities", () => {
+    expect(nodeBadgeSize(0, true)).toBe(58);
+    expect(nodeBadgeSize(1, false)).toBe(48);
+    expect(nodeBadgeSize(2, false)).toBe(46);
+    expect(nodeBadgeSize(3, false)).toBe(44);
   });
 
   it("separates parallel relationships with deterministic curved-route offsets", () => {
