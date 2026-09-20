@@ -90,6 +90,7 @@ export function applyNexusTraceDarkBasemap(map: ThemeableMap) {
       const isPlace = /place|city|town|state|country|locality|settlement/.test(semantics);
       const isRoad = /road|street|transport/.test(semantics);
       const isPoi = /poi|amenity|shop/.test(semantics);
+      // OpenFreeMap Liberty style serves Noto Sans as the standard font stack
       safeLayout(map, layer.id, "text-font", ["Noto Sans Regular"]);
       safePaint(map, layer.id, "text-color", isPlace ? "#dce7f2" : isRoad ? "#92a5ba" : "#aab9c8");
       safePaint(map, layer.id, "text-halo-color", "#07101a");

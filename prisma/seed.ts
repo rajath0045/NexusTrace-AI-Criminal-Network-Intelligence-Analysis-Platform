@@ -164,21 +164,18 @@ const passwordOptions: HashOptions = {
 };
 
 export async function seedSyntheticDemoData() {
-  const [administratorPassword, departmentPassword, investigatorPassword] =
-    await Promise.all([
-      hash(demoPassword, {
-        ...passwordOptions,
-        salt: Buffer.from("nexus-admin-0001"),
-      }),
-      hash(demoPassword, {
-        ...passwordOptions,
-        salt: Buffer.from("nexus-dept--0002"),
-      }),
-      hash(demoPassword, {
-        ...passwordOptions,
-        salt: Buffer.from("nexus-invest-003"),
-      }),
-    ]);
+  const administratorPassword = await hash(demoPassword, {
+    ...passwordOptions,
+    salt: Buffer.from("nexus-admin-0001"),
+  });
+  const departmentPassword = await hash(demoPassword, {
+    ...passwordOptions,
+    salt: Buffer.from("nexus-dept--0002"),
+  });
+  const investigatorPassword = await hash(demoPassword, {
+    ...passwordOptions,
+    salt: Buffer.from("nexus-invest-003"),
+  });
 
   await prisma.$transaction([
     prisma.department.upsert({
