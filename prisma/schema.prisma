@@ -173,6 +173,14 @@ enum FindingDispositionReason {
   REQUIRES_ADMIN_CROSS_VERIFICATION
 }
 
+enum ReportType {
+  INVESTIGATION_REPORT
+}
+
+enum ReportStatus {
+  GENERATED
+}
+
 model Department {
   id            String              @id @default(uuid()) @db.Uuid
   code          String              @unique
@@ -189,6 +197,7 @@ model Department {
   investigationFindings InvestigationFinding[]
   findingReviews FindingReview[]
   locationObservations EntityLocationObservation[]
+  reports        Report[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 }
@@ -214,6 +223,8 @@ model User {
   departmentVerifiedIncidents Incident[]         @relation("IncidentDepartmentVerifier")
   crossVerifiedIncidents Incident[]              @relation("IncidentCrossVerifier")
   createdLocationObservations EntityLocationObservation[] @relation("LocationObservationCreator")
+  reportsCreated            Report[] @relation("ReportCreator")
+  reportVersionsGenerated   ReportVersion[] @relation("ReportVersionGenerator")
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
@@ -270,6 +281,7 @@ model Case {
   communications         CommunicationRecord[]
   financialTransactions  FinancialTransaction[]
   investigationFindings  InvestigationFinding[]
+  reports                Report[]
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
@@ -430,6 +442,7 @@ model Incident {
   communications           CommunicationRecord[]
   financialTransactions    FinancialTransaction[]
   investigationFindings    InvestigationFinding[]
+  reports                  Report[]
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
 
@@ -649,4 +662,62 @@ model AuditEvent {
   @@index([actorId, createdAt])
   @@index([departmentId, createdAt])
   @@index([action, createdAt])
+}
+
+model Report {
+  id           String     @id @default(uuid()) @db.Uuid
+  reportNumber String     @unique
+  title        String
+  reportType   ReportType @default(INVESTIGATION_REPORT)
+  departmentId String     @db.Uuid
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  caseId       String     @db.Uuid
+  case         Case       @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  incidentId   String?    @db.Uuid
+  incident     Incident?  @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  createdById  String     @db.Uuid
+  createdBy    User       @relation("ReportCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt    DateTime   @default(now())
+  versions     ReportVersion[]
+
+  @@index([departmentId, createdAt])
+  @@index([caseId, createdAt])
+  @@index([incidentId, createdAt])
+}
+
+model ReportVersion {
+  id            String       @id @default(uuid()) @db.Uuid
+  reportId      String       @db.Uuid
+  report        Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  version       Int
+  status        ReportStatus @default(GENERATED)
+  snapshot      Json
+  timelineStart DateTime?
+  timelineEnd   DateTime?
+  generatedById String       @db.Uuid
+  generatedBy   User         @relation("ReportVersionGenerator", fields: [generatedById], references: [id], onDelete: Restrict)
+  generatedAt   DateTime     @default(now())
+  sources       ReportSourceReference[]
+
+  @@unique([reportId, version])
+  @@index([reportId, generatedAt])
+}
+
+model ReportSourceReference {
+  id                String        @id @default(uuid()) @db.Uuid
+  reportVersionId   String        @db.Uuid
+  reportVersion     ReportVersion @relation(fields: [reportVersionId], references: [id], onDelete: Cascade)
+  sourceType        String
+  sourceId          String
+  caseId            String?       @db.Uuid
+  incidentId        String?       @db.Uuid
+  evidenceId        String?       @db.Uuid
+  actorId           String?       @db.Uuid
+  observedAt        DateTime?
+  verificationState String?
+  reviewState       String?
+  metadata          Json?
+
+  @@unique([reportVersionId, sourceType, sourceId])
+  @@index([reportVersionId, sourceType])
 }

@@ -11,6 +11,7 @@ import {
   Menu,
   Network,
   Radar,
+  FileText,
   ScrollText,
   Search,
   ShieldCheck,
@@ -35,7 +36,8 @@ export type ShellIcon =
   | "investigation"
   | "search"
   | "administration"
-  | "audit";
+  | "audit"
+  | "reports";
 
 export interface ShellNavigationItem {
   href: string;
@@ -58,6 +60,7 @@ const icons: Record<ShellIcon, LucideIcon> = {
   search: Search,
   administration: ShieldCheck,
   audit: ScrollText,
+  reports: FileText,
 };
 
 function formatRole(role: Actor["role"]): string {
