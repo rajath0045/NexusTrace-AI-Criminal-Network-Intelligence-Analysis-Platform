@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js `22.12.0` or later and pnpm `11.19.0`.
+- Node.js `22.13.0` or later and pnpm `11.19.0`.
 - PostgreSQL 16 or later. The application uses PostgreSQL through Prisma 7.
 - A persistent, access-controlled filesystem location for evidence. The local adapter is intentionally the current deployment adapter; S3/MinIO may replace it later without changing database-controlled evidence IDs.
 - HTTPS termination in front of the application for non-local deployments. MapLibre retrieves authorized basemap tiles, fonts, and styles from `https://tiles.openfreemap.org`.

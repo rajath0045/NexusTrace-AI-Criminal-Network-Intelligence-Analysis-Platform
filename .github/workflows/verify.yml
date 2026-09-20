@@ -29,9 +29,10 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.12.0
+          node-version: '22.13.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
