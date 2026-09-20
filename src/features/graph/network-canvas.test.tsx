@@ -3,6 +3,8 @@ import { EvidenceConfidence, GraphEntityType, RelationshipStrength, Verification
 import {
   buildEdgeTooltip,
   buildNodeTooltip,
+  graphEntityIcon,
+  parallelEdgeOffsets,
   shouldShowNodeLabel,
 } from "./network-canvas";
 
@@ -38,5 +40,17 @@ describe("network marker presentation", () => {
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: true, zoom: 0.7 })).toBe(true);
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 0.7 })).toBe(false);
     expect(shouldShowNodeLabel({ isFocus: false, isSelected: false, zoom: 1.25 })).toBe(true);
+  });
+
+  it("uses distinct SVG entity icons rather than color-only graph markers", () => {
+    expect(graphEntityIcon(GraphEntityType.Person)).toContain("data:image/svg+xml");
+    expect(graphEntityIcon(GraphEntityType.Person)).not.toEqual(graphEntityIcon(GraphEntityType.Phone));
+    expect(graphEntityIcon(GraphEntityType.Vehicle)).not.toEqual(graphEntityIcon(GraphEntityType.Property));
+  });
+
+  it("separates parallel relationships with deterministic curved-route offsets", () => {
+    const edge = (id: string, relationshipType: string) => ({ id, sourceId: "person", targetId: "phone", relationshipType, strength: RelationshipStrength.Secondary, evidenceConfidence: EvidenceConfidence.Probable, verificationState: VerificationState.Verified, interactionCount: 1, interactionSummary: null, firstObservedAt: null, latestObservedAt: null });
+    const offsets = parallelEdgeOffsets([edge("call", "CALLED"), edge("message", "MESSAGED"), edge("transfer", "TRANSFERRED_TO")]);
+    expect([...offsets.values()]).toEqual([-22, 0, 22]);
   });
 });

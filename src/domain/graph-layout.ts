@@ -9,7 +9,7 @@ export const graphPresentationSchema = z.object({
   edgeRoutes: z.record(z.string().uuid(), z.number().finite().min(-300).max(300)).default({}),
   zoom: z.number().finite().min(0.45).max(2.4).optional(),
   pan: coordinateSchema.optional(),
-  algorithm: graphLayoutAlgorithmSchema.default("breadthfirst"),
+  algorithm: graphLayoutAlgorithmSchema.default("cose"),
   filters: z.object({ relationshipTypes: z.array(z.string().max(80)).max(30).default([]) }).default({ relationshipTypes: [] }),
 });
 

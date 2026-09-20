@@ -43,6 +43,7 @@ test("authorized geographic network console stays synchronized", async ({ page }
   await page.getByRole("button", { name: "Customize", exact: true }).click();
   await expect(page.getByRole("button", { name: "Done", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.screenshot({ path: testInfo.outputPath("relationship-network.png"), fullPage: false });
   await page.getByRole("button", { name: "Geographic", exact: true }).click();
   await expect(page.locator(".network-geographic-map .maplibregl-canvas")).toBeVisible();
   await expect(page.locator('.network-geographic-map[data-map-loaded="true"]')).toBeVisible({ timeout: 20_000 });

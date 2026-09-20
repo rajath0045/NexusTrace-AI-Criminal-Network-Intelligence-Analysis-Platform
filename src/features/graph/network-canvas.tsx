@@ -16,6 +16,7 @@ interface NetworkCanvasProps {
   focusMode: boolean;
   fitVersion: number;
   recenterVersion: number;
+  autoArrangeVersion: number;
   presentation: GraphPresentation;
   customizeMode: boolean;
   onPresentationChange: (update: Pick<GraphPresentation, "positions" | "edgeRoutes" | "zoom" | "pan">) => void;
@@ -56,9 +57,20 @@ function titleCase(value: string): string {
   return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function markerIcon(type: GraphEntityType): string {
+export function graphEntityIcon(type: GraphEntityType): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#eaf3ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${iconPaths[type]}</svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+export function parallelEdgeOffsets(edges: SerializedGraphEdge[]): Map<string, number> {
+  const offsets = new Map<string, number>();
+  const groups = new Map<string, SerializedGraphEdge[]>();
+  for (const edge of edges) {
+    const key = [edge.sourceId, edge.targetId].sort().join(":");
+    groups.set(key, [...(groups.get(key) ?? []), edge]);
+  }
+  for (const group of groups.values()) group.forEach((edge, index) => offsets.set(edge.id, (index - (group.length - 1) / 2) * 22));
+  return offsets;
 }
 
 export function buildNodeTooltip(node: GraphEntityView, connectionCount: number): TooltipContent {
@@ -128,32 +140,43 @@ function updateFocusMode(graph: Core, selectedNodeId: string | null, enabled: bo
   graph.edges().forEach((edge) => { if (depths.has(edge.source().id()) && depths.has(edge.target().id())) edge.removeClass("focus-dim").addClass("neighborhood-edge"); });
 }
 
-export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, selectedEdgeId, focusMode, fitVersion, recenterVersion, presentation, customizeMode, onPresentationChange, onNodeSelect, onEdgeSelect }: NetworkCanvasProps) {
+function layoutOptions(presentation: GraphPresentation, focusEntityId: string): Record<string, unknown> {
+  if (Object.keys(presentation.positions).length > 0) return { name: "preset", fit: true, padding: 64 };
+  if (presentation.algorithm === "cose") {
+    return { name: "cose", fit: true, padding: 54, animate: false, avoidOverlap: true, nodeRepulsion: 56_000, idealEdgeLength: 92, componentSpacing: 44, gravity: 1.15, numIter: 700 };
+  }
+  if (presentation.algorithm === "breadthfirst") return { name: "breadthfirst", roots: [focusEntityId], directed: true, padding: 64, animate: false, spacingFactor: 1.1, avoidOverlap: true };
+  return { name: presentation.algorithm, fit: true, padding: 64, animate: false, avoidOverlap: true };
+}
+
+export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, selectedEdgeId, focusMode, fitVersion, recenterVersion, autoArrangeVersion, presentation, customizeMode, onPresentationChange, onNodeSelect, onEdgeSelect }: NetworkCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Core | null>(null);
   const selectedNodeIdRef = useRef(selectedNodeId);
+  const presentationRef = useRef(presentation);
+  const customizeModeRef = useRef(customizeMode);
+  const callbacksRef = useRef({ onPresentationChange, onNodeSelect, onEdgeSelect });
+  const previousLayoutRef = useRef<{ algorithm: GraphPresentation["algorithm"]; hadPositions: boolean; autoArrangeVersion: number } | null>(null);
+  const viewportTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tooltip, setTooltip] = useState<HoverTooltip | null>(null);
 
   useEffect(() => { selectedNodeIdRef.current = selectedNodeId; }, [selectedNodeId]);
+  useEffect(() => { presentationRef.current = presentation; }, [presentation]);
+  useEffect(() => { customizeModeRef.current = customizeMode; }, [customizeMode]);
+  useEffect(() => { callbacksRef.current = { onPresentationChange, onNodeSelect, onEdgeSelect }; }, [onEdgeSelect, onNodeSelect, onPresentationChange]);
 
   useEffect(() => {
     let cancelled = false;
     const depths = depthsFromFocus(nodes, edges, focusEntityId);
-    const pairOffsets = new Map<string, number>();
-    const groupedEdges = new Map<string, SerializedGraphEdge[]>();
-    for (const edge of edges) {
-      const key = [edge.sourceId, edge.targetId].sort().join(":");
-      groupedEdges.set(key, [...(groupedEdges.get(key) ?? []), edge]);
-    }
-    for (const group of groupedEdges.values()) {
-      group.forEach((edge, index) => pairOffsets.set(edge.id, (index - (group.length - 1) / 2) * 22));
-    }
+    const pairOffsets = parallelEdgeOffsets(edges);
+    const initialPresentation = presentationRef.current;
     const elements: ElementDefinition[] = [
-      ...nodes.map((node) => ({ data: { id: node.id, label: node.displayLabel, color: markerColors[node.entityType], icon: markerIcon(node.entityType), size: markerSize(depths.get(node.id), node.id === focusEntityId) }, position: presentation.positions[node.id], classes: node.id === focusEntityId ? "focus-marker" : "" })),
+      ...nodes.map((node) => ({ data: { id: node.id, label: node.displayLabel, color: markerColors[node.entityType], icon: graphEntityIcon(node.entityType), size: markerSize(depths.get(node.id), node.id === focusEntityId) }, position: initialPresentation.positions[node.id], classes: node.id === focusEntityId ? "focus-marker" : "" })),
       ...edges.map((edge) => ({ data: {
         id: edge.id, source: edge.sourceId, target: edge.targetId,
         label: titleCase(edge.relationshipType),
-        routeOffset: Object.hasOwn(presentation.edgeRoutes, edge.id) ? presentation.edgeRoutes[edge.id]! : pairOffsets.get(edge.id) ?? 0,
+        autoRouteOffset: pairOffsets.get(edge.id) ?? 0,
+        routeOffset: Object.hasOwn(initialPresentation.edgeRoutes, edge.id) ? initialPresentation.edgeRoutes[edge.id]! : pairOffsets.get(edge.id) ?? 0,
       }, classes: `${edge.strength.toLowerCase()} ${verificationClass(edge.verificationState)}` })),
     ];
     void import("cytoscape").then(({ default: cytoscape }) => {
@@ -162,10 +185,8 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const graph = cytoscape({
         container: containerRef.current, elements,
-        layout: Object.keys(presentation.positions).length > 0
-          ? { name: "preset", fit: true, padding: 84 }
-          : { name: presentation.algorithm, roots: [focusEntityId], directed: true, padding: 84, animate: false, spacingFactor: 1.75, avoidOverlap: true },
-        minZoom: 0.45, maxZoom: 2.4, wheelSensitivity: 0.16, autoungrabify: !customizeMode,
+        layout: layoutOptions(initialPresentation, focusEntityId) as never,
+        minZoom: 0.45, maxZoom: 2.4, wheelSensitivity: 0.16, autoungrabify: true,
         style: [
           { selector: "node", style: { "background-color": "data(color)", "background-image": "data(icon)", "background-fit": "contain", "background-width": "54%", "background-height": "54%", width: "data(size)", height: "data(size)", label: "", color: "#eaf3ff", "font-size": 10, "font-weight": 650, "text-valign": "bottom", "text-margin-y": 9, "text-wrap": "ellipsis", "text-max-width": 116, "border-width": 2, "border-color": "#bedafa", "overlay-opacity": 0, "underlay-color": "#3e91e9", "underlay-opacity": 0, "underlay-padding": 5 } },
           { selector: "node.show-marker-label", style: { label: "data(label)" } },
@@ -196,21 +217,25 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
       });
       graph.on("mouseout", "node", (event) => { event.target.removeClass("hovered-marker"); setTooltip(null); });
       graph.on("mouseout", "edge", (event) => { graph.elements().removeClass("hover-dim hovered-connection"); event.target.source().removeClass("edge-endpoint"); event.target.target().removeClass("edge-endpoint"); setTooltip(null); });
-      graph.on("tap", "node", (event) => onNodeSelect(event.target.id()));
-      graph.on("tap", "edge", (event) => onEdgeSelect(event.target.id()));
-      if (customizeMode) graph.nodes().grabify(); else graph.nodes().ungrabify();
+      graph.on("tap", "node", (event) => callbacksRef.current.onNodeSelect(event.target.id()));
+      graph.on("tap", "edge", (event) => callbacksRef.current.onEdgeSelect(event.target.id()));
       graph.on("dragfree", "node", () => {
-        if (!customizeMode) return;
+        if (!customizeModeRef.current) return;
         const positions = Object.fromEntries(graph.nodes().map((node) => [node.id(), node.position()]));
-        onPresentationChange({ positions, edgeRoutes: presentation.edgeRoutes, zoom: graph.zoom(), pan: graph.pan() });
+        callbacksRef.current.onPresentationChange({ positions, edgeRoutes: presentationRef.current.edgeRoutes, zoom: graph.zoom(), pan: graph.pan() });
+      });
+      graph.on("viewport", () => {
+        if (!customizeModeRef.current) return;
+        if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current);
+        viewportTimerRef.current = setTimeout(() => callbacksRef.current.onPresentationChange({ positions: presentationRef.current.positions, edgeRoutes: presentationRef.current.edgeRoutes, zoom: graph.zoom(), pan: graph.pan() }), 180);
       });
       graph.on("zoom", () => updateSemanticLabels(graph, focusEntityId, selectedNodeIdRef.current));
       graphRef.current = graph;
       updateSemanticLabels(graph, focusEntityId, selectedNodeIdRef.current);
       if (!reducedMotion) graph.animate({ fit: { eles: graph.elements(), padding: 64 } }, { duration: 150 });
     });
-    return () => { cancelled = true; graphRef.current?.destroy(); graphRef.current = null; };
-  }, [customizeMode, edges, focusEntityId, nodes, onEdgeSelect, onNodeSelect, onPresentationChange, presentation]);
+    return () => { cancelled = true; if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current); graphRef.current?.destroy(); graphRef.current = null; };
+  }, [edges, focusEntityId, nodes]);
 
   useEffect(() => {
     const graph = graphRef.current;
@@ -221,6 +246,28 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
     updateSemanticLabels(graph, focusEntityId, selectedNodeId);
     updateFocusMode(graph, selectedNodeId, focusMode);
   }, [focusEntityId, focusMode, selectedEdgeId, selectedNodeId]);
+
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    const hadPositions = Object.keys(presentation.positions).length > 0;
+    graph.edges().forEach((edge) => {
+      edge.data("routeOffset", Object.hasOwn(presentation.edgeRoutes, edge.id()) ? presentation.edgeRoutes[edge.id()] : edge.data("autoRouteOffset"));
+    });
+    if (hadPositions) {
+      graph.nodes().forEach((node) => {
+        const position = presentation.positions[node.id()];
+        if (position) node.position(position);
+      });
+    }
+    const previous = previousLayoutRef.current;
+    if (!hadPositions && (!previous || previous.hadPositions || previous.algorithm !== presentation.algorithm || previous.autoArrangeVersion !== autoArrangeVersion)) {
+      graph.layout(layoutOptions(presentation, focusEntityId) as never).run();
+    }
+    if (presentation.zoom) graph.zoom(presentation.zoom);
+    if (presentation.pan) graph.pan(presentation.pan);
+    previousLayoutRef.current = { algorithm: presentation.algorithm, hadPositions, autoArrangeVersion };
+  }, [autoArrangeVersion, focusEntityId, presentation]);
 
   useEffect(() => { graphRef.current?.fit(undefined, 64); }, [fitVersion]);
   useEffect(() => {

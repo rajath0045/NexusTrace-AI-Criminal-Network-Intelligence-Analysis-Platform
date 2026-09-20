@@ -2,7 +2,7 @@ import type { Actor } from "@/domain/auth";
 import { graphLayoutKey, graphPresentationSchema, type GraphPresentation } from "@/domain/graph-layout";
 import { prisma } from "@/server/db/client";
 
-const defaultPresentation: GraphPresentation = { version: 1, positions: {}, edgeRoutes: {}, algorithm: "breadthfirst", filters: { relationshipTypes: [] } };
+const defaultPresentation: GraphPresentation = { version: 1, positions: {}, edgeRoutes: {}, algorithm: "cose", filters: { relationshipTypes: [] } };
 
 export async function getGraphPresentation(actor: Actor, focusEntityId: string): Promise<GraphPresentation> {
   const stored = await prisma.userWorkspaceLayout.findUnique({ where: { userId_workspaceKey: { userId: actor.userId, workspaceKey: graphLayoutKey(focusEntityId) } } });

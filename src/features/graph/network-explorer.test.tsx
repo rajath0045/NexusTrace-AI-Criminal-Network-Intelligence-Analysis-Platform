@@ -64,6 +64,27 @@ describe("NetworkExplorer", () => {
     expect(screen.getByLabelText("Geographic network map")).toBeVisible();
   });
 
+  it("opens Relationship Intelligence with a bounded two-hop, all-tier investigation context", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => projection } as Response);
+    renderExplorer();
+    await user.click(screen.getByRole("button", { name: "Relationship" }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).startsWith("/api/network?") && String(url).includes("hops=2") && String(url).includes("strengths=PRIMARY%2CSECONDARY%2CTERTIARY"))).toBe(true));
+    expect(screen.getByRole("button", { name: "Expand connections" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Collapse" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Auto arrange" })).toBeVisible();
+  });
+
+  it("keeps progressive graph expansion bounded at three hops", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => projection } as Response);
+    renderExplorer();
+    await user.click(screen.getByRole("button", { name: "Relationship" }));
+    await user.click(screen.getByRole("button", { name: "Expand connections" }));
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes("hops=3"))).toBe(true));
+    expect(screen.getByRole("button", { name: "Expand connections" })).toBeDisabled();
+  });
+
   it("uses server filtering for relationship tiers, traversal, and verification", async () => {
     const user = userEvent.setup();
     vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => projection } as Response);

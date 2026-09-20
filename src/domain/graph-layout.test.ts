@@ -16,4 +16,8 @@ describe("per-user graph presentation metadata", () => {
   it("rejects a layout that attempts to store unbounded coordinates", () => {
     expect(() => graphPresentationSchema.parse({ version: 1, positions: { "60000000-0000-4000-8000-000000000003": { x: 50_000, y: 0 } } })).toThrow();
   });
+
+  it("defaults new relationship explorers to a compact force-directed presentation", () => {
+    expect(graphPresentationSchema.parse({ version: 1 }).algorithm).toBe("cose");
+  });
 });

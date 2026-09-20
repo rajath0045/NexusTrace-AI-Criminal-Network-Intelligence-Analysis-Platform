@@ -98,7 +98,8 @@
     "Incident and timeline workspaces retain the compact fixed-by-default investigation layout: chronology is dense but readable, with type filters and source links instead of decorative temporal effects.",
     "The authenticated shell stays compact by default, expands on hover or keyboard focus, and uses role-filtered real routes; the dashboard uses calm authorized module focus states instead of a full-screen scroll experience.",
     "Global search, administration, and audit views use dense bounded lists with quiet metadata, responsive row-to-card transitions, and explicit restricted-state copy rather than command-palette theatrics.",
-    "Reports use a calm two-column generator/history console and a print-safe document surface: authoritative records, investigative leads, dismissed leads, and source provenance stay visibly separated with compact structured metadata."
+    "Reports use a calm two-column generator/history console and a print-safe document surface: authoritative records, investigative leads, dismissed leads, and source provenance stay visibly separated with compact structured metadata.",
+    "Relationship Intelligence opens a bounded two-hop, verified knowledge graph with all existing relationship tiers, compact force-directed layout, SVG entity markers, semantic edge labels, and per-user presentation-only customization."
   ],
   "evidence": [
     {
