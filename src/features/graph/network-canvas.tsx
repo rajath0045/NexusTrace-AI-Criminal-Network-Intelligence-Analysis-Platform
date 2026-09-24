@@ -38,6 +38,7 @@ interface HoverTooltip {
 
 interface EntityNodeVisual { icon: string; fill: string; border: string; accent: string; }
 export interface LayoutRunState { algorithm: GraphPresentation["algorithm"]; hadPositions: boolean; autoArrangeVersion: number; }
+export const NODE_ICON_RATIO = 0.58;
 
 const entityNodeVisuals: Record<GraphEntityType, EntityNodeVisual> = {
   [GraphEntityType.Person]: { icon: '<path fill="{accent}" fill-opacity=".28" stroke="none" d="M8.8 10.4a4.2 4.2 0 0 1 6.4 0v1.2H8.8z"/><circle cx="12" cy="7.5" r="3"/><path d="M5.7 20c.8-3.8 3.1-5.8 6.3-5.8s5.5 2 6.3 5.8M10.4 8h3.2"/>', fill: "#183c5a", border: "#77baf1", accent: "#64c8ff" },
@@ -64,7 +65,7 @@ export function entityNodeVisual(type: GraphEntityType | string): EntityNodeVisu
 
 export function graphEntityIcon(type: GraphEntityType | string): string {
   const visual = entityNodeVisual(type);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" fill="none" stroke="#eaf3ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${visual.icon.replaceAll("{accent}", visual.accent)}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" fill="none" stroke="#eaf3ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${visual.icon.replaceAll("{accent}", visual.accent)}</svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
@@ -114,8 +115,37 @@ function depthsFromFocus(nodes: GraphEntityView[], edges: SerializedGraphEdge[],
 
 export function nodeBadgeSize(depth: number | undefined, isFocus: boolean): number {
   if (isFocus) return 58;
-  if (depth === 1) return 52;
+  if (depth === 1) return 50;
   return 48;
+}
+
+export function nodeIconSize(badgeSize: number): number {
+  return Number((badgeSize * NODE_ICON_RATIO).toFixed(2));
+}
+
+export interface ScreenSpaceNodeMetrics {
+  nodeSize: number;
+  iconSize: number;
+  labelFontSize: number;
+  labelMargin: number;
+  labelMaxWidth: number;
+  borderWidth: number;
+  underlayPadding: number;
+}
+
+export function screenSpaceNodeMetrics({ zoom, badgeSize, isFocus, isSelected, isHovered = false, isEdgeEndpoint = false }: { zoom: number; badgeSize: number; isFocus: boolean; isSelected: boolean; isHovered?: boolean; isEdgeEndpoint?: boolean }): ScreenSpaceNodeMetrics {
+  const inverseZoom = 1 / Math.max(zoom, 0.01);
+  const emphasized = isFocus || isSelected || isHovered;
+  const underlayPadding = isSelected ? 9 : isFocus || isHovered ? 8 : isEdgeEndpoint ? 7 : 5;
+  return {
+    nodeSize: badgeSize * inverseZoom,
+    iconSize: nodeIconSize(badgeSize) * inverseZoom,
+    labelFontSize: 12 * inverseZoom,
+    labelMargin: 10 * inverseZoom,
+    labelMaxWidth: 118 * inverseZoom,
+    borderWidth: (emphasized ? 3 : 2) * inverseZoom,
+    underlayPadding: underlayPadding * inverseZoom,
+  };
 }
 
 function verificationClass(state: VerificationState): string { return state.toLowerCase().replaceAll("_", "-"); }
@@ -142,6 +172,37 @@ function applySelectionState(graph: Core, selectedNodeId: string | null, selecte
     edge.source().addClass("edge-endpoint");
     edge.target().addClass("edge-endpoint");
   }
+}
+
+function applyScreenSpaceStyles(graph: Core): void {
+  const zoom = graph.zoom();
+  graph.batch(() => {
+    graph.nodes().forEach((node) => {
+      const metrics = screenSpaceNodeMetrics({
+        zoom,
+        badgeSize: Number(node.data("size")),
+        isFocus: node.hasClass("focus-marker"),
+        isSelected: node.hasClass("marker-selected"),
+        isHovered: node.hasClass("hovered-marker"),
+        isEdgeEndpoint: node.hasClass("edge-endpoint"),
+      });
+      node.style("width", metrics.nodeSize);
+      node.style("height", metrics.nodeSize);
+      node.style("background-width", metrics.iconSize);
+      node.style("background-height", metrics.iconSize);
+      node.style("font-size", metrics.labelFontSize);
+      node.style("text-margin-y", metrics.labelMargin);
+      node.style("text-max-width", metrics.labelMaxWidth);
+      node.style("border-width", metrics.borderWidth);
+      node.style("underlay-padding", metrics.underlayPadding);
+    });
+    graph.edges().forEach((edge) => {
+      const inverseZoom = 1 / Math.max(zoom, 0.01);
+      edge.style("font-size", 10 * inverseZoom);
+      edge.style("text-background-padding", 2 * inverseZoom);
+      edge.style("text-border-width", 0.4 * inverseZoom);
+    });
+  });
 }
 
 function updateFocusMode(graph: Core, selectedNodeId: string | null, enabled: boolean): void {
@@ -199,13 +260,15 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
 
   useEffect(() => {
     let cancelled = false;
+    const graphContainer = containerRef.current;
     const depths = depthsFromFocus(nodes, edges, focusEntityId);
     const pairOffsets = parallelEdgeOffsets(edges);
     const initialPresentation = presentationRef.current;
     const elements: ElementDefinition[] = [
       ...nodes.map((node) => {
         const visual = entityNodeVisual(node.entityType);
-        return { data: { id: node.id, label: node.displayLabel, fill: visual.fill, border: visual.border, icon: graphEntityIcon(node.entityType), size: nodeBadgeSize(depths.get(node.id), node.id === focusEntityId) }, position: initialPresentation.positions[node.id], classes: node.id === focusEntityId ? "focus-marker" : "" };
+        const size = nodeBadgeSize(depths.get(node.id), node.id === focusEntityId);
+        return { data: { id: node.id, label: node.displayLabel, fill: visual.fill, border: visual.border, icon: graphEntityIcon(node.entityType), size, iconSize: nodeIconSize(size) }, position: initialPresentation.positions[node.id], classes: node.id === focusEntityId ? "focus-marker" : "" };
       }),
       ...edges.map((edge) => ({ data: {
         id: edge.id, source: edge.sourceId, target: edge.targetId,
@@ -215,16 +278,17 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
       }, classes: `${edge.strength.toLowerCase()} ${verificationClass(edge.verificationState)}` })),
     ];
     let resizeObserver: ResizeObserver | null = null;
+    let screenSpaceFrame: number | null = null;
     void import("cytoscape").then(({ default: cytoscape }) => {
-      if (cancelled || !containerRef.current) return;
+      if (cancelled || !graphContainer) return;
       graphRef.current?.destroy();
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const graph = cytoscape({
-        container: containerRef.current, elements,
+        container: graphContainer, elements,
         layout: layoutOptions(initialPresentation, focusEntityId) as never,
         minZoom: 0.45, maxZoom: 2.4, wheelSensitivity: 0.16, autoungrabify: true, autounselectify: true,
         style: [
-          { selector: "node", style: { shape: "ellipse", "background-color": "data(fill)", "background-image": "data(icon)", "background-fit": "none", "background-repeat": "no-repeat", "background-position-x": "50%", "background-position-y": "50%", "background-width": "60%", "background-height": "60%", "background-width-relative-to": "inner", "background-height-relative-to": "inner", "background-clip": "node", "background-image-opacity": 1, width: "data(size)", height: "data(size)", label: "", color: "#eaf3ff", "font-size": 10, "min-zoomed-font-size": 8, "font-weight": 650, "text-halign": "center", "text-justification": "center", "text-valign": "bottom", "text-margin-y": 10, "text-wrap": "ellipsis", "text-max-width": 118, "border-width": 2, "border-color": "data(border)", "overlay-opacity": 0, "underlay-color": "#3e91e9", "underlay-shape": "ellipse", "underlay-opacity": 0, "underlay-padding": 5 } },
+          { selector: "node", style: { shape: "ellipse", "background-color": "data(fill)", "background-image": "data(icon)", "background-fit": "none", "background-repeat": "no-repeat", "background-position-x": "50%", "background-position-y": "50%", "background-width": "data(iconSize)", "background-height": "data(iconSize)", "background-clip": "node", "background-image-opacity": 1, width: "data(size)", height: "data(size)", label: "", color: "#eaf3ff", "font-size": 10, "min-zoomed-font-size": 8, "font-weight": 650, "text-halign": "center", "text-justification": "center", "text-valign": "bottom", "text-margin-y": 10, "text-wrap": "ellipsis", "text-max-width": 118, "border-width": 2, "border-color": "data(border)", "overlay-opacity": 0, "underlay-color": "#3e91e9", "underlay-shape": "ellipse", "underlay-opacity": 0, "underlay-padding": 5 } },
           { selector: "node.show-marker-label", style: { label: "data(label)" } },
           { selector: "node.focus-marker", style: { "border-width": 3, "border-color": "#e9f4ff", "underlay-opacity": 0.28, "underlay-padding": 8 } },
           { selector: "node.marker-selected", style: { "border-width": 3, "border-color": "#7fc1ff", "underlay-opacity": 0.38, "underlay-padding": 9 } },
@@ -239,9 +303,17 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
           { selector: "node.hover-dim", style: { opacity: 0.3 } }, { selector: "edge.hover-dim", style: { opacity: 0.14 } }, { selector: "edge.hovered-connection", style: { width: 4, "line-color": "#d8ebff", "line-outline-width": 1.6, "line-outline-color": "#315f8e", "target-arrow-color": "#d8ebff", opacity: 1 } },
         ] as unknown as StylesheetJson,
       });
-      const position = (event: { renderedPosition: { x: number; y: number } }) => clampTooltip(containerRef.current!, event.renderedPosition.x, event.renderedPosition.y);
+      const scheduleScreenSpaceStyles = () => {
+        if (screenSpaceFrame !== null) return;
+        screenSpaceFrame = window.requestAnimationFrame(() => {
+          screenSpaceFrame = null;
+          applyScreenSpaceStyles(graph);
+        });
+      };
+      const position = (event: { renderedPosition: { x: number; y: number } }) => clampTooltip(graphContainer, event.renderedPosition.x, event.renderedPosition.y);
       graph.on("mouseover mousemove", "node", (event) => {
         event.target.addClass("hovered-marker");
+        scheduleScreenSpaceStyles();
         const entity = nodes.find((node) => node.id === event.target.id());
         if (entity) setTooltip({ content: buildNodeTooltip(entity, event.target.connectedEdges().length), ...position(event) });
       });
@@ -250,11 +322,12 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
         event.target.removeClass("hover-dim").addClass("hovered-connection");
         event.target.source().removeClass("hover-dim").addClass("edge-endpoint");
         event.target.target().removeClass("hover-dim").addClass("edge-endpoint");
+        scheduleScreenSpaceStyles();
         const edge = edges.find((item) => item.id === event.target.id());
         if (edge) setTooltip({ content: buildEdgeTooltip(edge), ...position(event) });
       });
-      graph.on("mouseout", "node", (event) => { event.target.removeClass("hovered-marker"); setTooltip(null); });
-      graph.on("mouseout", "edge", (event) => { graph.elements().removeClass("hover-dim hovered-connection"); event.target.source().removeClass("edge-endpoint"); event.target.target().removeClass("edge-endpoint"); setTooltip(null); });
+      graph.on("mouseout", "node", (event) => { event.target.removeClass("hovered-marker"); scheduleScreenSpaceStyles(); setTooltip(null); });
+      graph.on("mouseout", "edge", (event) => { graph.elements().removeClass("hover-dim hovered-connection"); event.target.source().removeClass("edge-endpoint"); event.target.target().removeClass("edge-endpoint"); scheduleScreenSpaceStyles(); setTooltip(null); });
       graph.on("tap", "node", (event) => callbacksRef.current.onNodeSelect(event.target.id()));
       graph.on("tap", "edge", (event) => callbacksRef.current.onEdgeSelect(event.target.id()));
       graph.on("dragfree", "node", () => {
@@ -267,19 +340,21 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
         if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current);
         viewportTimerRef.current = setTimeout(() => callbacksRef.current.onPresentationChange({ positions: presentationRef.current.positions, edgeRoutes: presentationRef.current.edgeRoutes, zoom: graph.zoom(), pan: graph.pan() }), 180);
       });
-      graph.on("zoom", () => updateSemanticLabels(graph, focusEntityId, selectedNodeIdRef.current, selectedEdgeIdRef.current));
+      graph.on("zoom", () => { updateSemanticLabels(graph, focusEntityId, selectedNodeIdRef.current, selectedEdgeIdRef.current); scheduleScreenSpaceStyles(); });
       graphRef.current = graph;
       previousLayoutRef.current = { algorithm: initialPresentation.algorithm, hadPositions: Object.keys(initialPresentation.positions).length > 0, autoArrangeVersion: autoArrangeVersionRef.current };
       applySelectionState(graph, selectedNodeIdRef.current, selectedEdgeIdRef.current);
       updateSemanticLabels(graph, focusEntityId, selectedNodeIdRef.current, selectedEdgeIdRef.current);
       updateFocusMode(graph, selectedNodeIdRef.current, focusModeRef.current);
+      applyScreenSpaceStyles(graph);
       if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => graph.resize());
-        resizeObserver.observe(containerRef.current);
+        resizeObserver = new ResizeObserver(() => { graph.resize(); scheduleScreenSpaceStyles(); });
+        resizeObserver.observe(graphContainer);
       }
+      if (process.env.NODE_ENV !== "production") (graphContainer as HTMLDivElement & { __nexusTraceCy?: Core }).__nexusTraceCy = graph;
       if (!reducedMotion) graph.animate({ fit: { eles: graph.elements(), padding: 64 } }, { duration: 150 });
     });
-    return () => { cancelled = true; resizeObserver?.disconnect(); if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current); graphRef.current?.destroy(); graphRef.current = null; };
+    return () => { cancelled = true; resizeObserver?.disconnect(); if (screenSpaceFrame !== null) window.cancelAnimationFrame(screenSpaceFrame); if (viewportTimerRef.current) clearTimeout(viewportTimerRef.current); if (graphContainer) delete (graphContainer as HTMLDivElement & { __nexusTraceCy?: Core }).__nexusTraceCy; graphRef.current?.destroy(); graphRef.current = null; };
   }, [edges, focusEntityId, nodes]);
 
   useEffect(() => {
@@ -288,6 +363,7 @@ export function NetworkCanvas({ focusEntityId, nodes, edges, selectedNodeId, sel
     applySelectionState(graph, selectedNodeId, selectedEdgeId);
     updateSemanticLabels(graph, focusEntityId, selectedNodeId, selectedEdgeId);
     updateFocusMode(graph, selectedNodeId, focusMode);
+    applyScreenSpaceStyles(graph);
   }, [focusEntityId, focusMode, selectedEdgeId, selectedNodeId]);
 
   useEffect(() => {

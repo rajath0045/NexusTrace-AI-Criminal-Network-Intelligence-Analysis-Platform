@@ -50,6 +50,55 @@ test("authorized geographic network console stays synchronized", async ({ page }
   await expect(page.getByLabel("Criminal network investigation graph")).toBeVisible();
   const relationshipCanvas = page.locator(".network-canvas");
   await expect(relationshipCanvas).toBeVisible();
+  const screenSpaceMeasurements = await relationshipCanvas.evaluate(async (canvas) => {
+    type ClientNode = {
+      data: (name: string) => string;
+      renderedWidth: () => number;
+      pstyle: (name: string) => { pfValue: number };
+    };
+    type ClientGraph = {
+      zoom: (level?: number) => number;
+      nodes: () => { toArray: () => ClientNode[] };
+    };
+    const graph = (canvas as HTMLDivElement & { __nexusTraceCy?: ClientGraph }).__nexusTraceCy;
+    if (!graph) throw new Error("Relationship graph test handle is unavailable.");
+    const nodeForLabel = (label: string) => {
+      const node = graph.nodes().toArray().find((item) => item.data("label") === label);
+      if (!node) throw new Error(`Graph node ${label} is unavailable.`);
+      return node;
+    };
+    const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const measurements: Array<{ zoom: number; arjun: { badge: number; icon: number; label: number }; meera: { badge: number; icon: number; label: number } }> = [];
+    for (const zoom of [0.5, 0.75, 1, 1.25, 1.5, 2]) {
+      graph.zoom(zoom);
+      await nextFrame();
+      const measure = (label: string) => {
+        const node = nodeForLabel(label);
+        return {
+          badge: node.renderedWidth(),
+          icon: node.pstyle("background-width").pfValue * graph.zoom(),
+          label: node.pstyle("font-size").pfValue * graph.zoom(),
+        };
+      };
+      measurements.push({ zoom, arjun: measure("Arjun Mehta"), meera: measure("Meera Nair") });
+    }
+    graph.zoom(1);
+    await nextFrame();
+    return measurements;
+  });
+  await testInfo.attach("relationship-screen-space-metrics", { body: JSON.stringify(screenSpaceMeasurements, null, 2), contentType: "application/json" });
+  for (const measurement of screenSpaceMeasurements) {
+    expect(measurement.arjun.badge).toBeGreaterThanOrEqual(57);
+    expect(measurement.arjun.badge).toBeLessThanOrEqual(59);
+    expect(measurement.meera.badge).toBeGreaterThanOrEqual(49);
+    expect(measurement.meera.badge).toBeLessThanOrEqual(51);
+    expect(measurement.arjun.icon / measurement.arjun.badge).toBeCloseTo(0.58, 2);
+    expect(measurement.meera.icon / measurement.meera.badge).toBeCloseTo(0.58, 2);
+    expect(measurement.arjun.label).toBeGreaterThanOrEqual(11);
+    expect(measurement.arjun.label).toBeLessThanOrEqual(13);
+    expect(measurement.meera.label).toBeGreaterThanOrEqual(11);
+    expect(measurement.meera.label).toBeLessThanOrEqual(13);
+  }
   const canvasBox = await relationshipCanvas.boundingBox();
   expect(canvasBox).not.toBeNull();
   await relationshipCanvas.hover({ position: { x: canvasBox!.width / 2, y: canvasBox!.height / 2 } });

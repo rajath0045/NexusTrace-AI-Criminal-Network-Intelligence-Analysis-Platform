@@ -6,10 +6,13 @@ import {
   entityNodeVisual,
   graphEntityIcon,
   nodeBadgeSize,
+  nodeIconSize,
+  NODE_ICON_RATIO,
   parallelEdgeOffsets,
   shouldShowEdgeLabel,
   shouldShowNodeLabel,
   shouldRunLayout,
+  screenSpaceNodeMetrics,
 } from "./network-canvas";
 
 describe("network marker presentation", () => {
@@ -58,6 +61,7 @@ describe("network marker presentation", () => {
     expect(graphEntityIcon(GraphEntityType.Person)).toContain("data:image/svg+xml");
     expect(graphEntityIcon(GraphEntityType.Person)).not.toEqual(graphEntityIcon(GraphEntityType.Phone));
     expect(graphEntityIcon(GraphEntityType.Vehicle)).not.toEqual(graphEntityIcon(GraphEntityType.Property));
+    expect(graphEntityIcon("UNKNOWN_ENTITY")).toContain("width%3D%2224%22");
     expect(graphEntityIcon("UNKNOWN_ENTITY")).toContain("preserveAspectRatio%3D%22xMidYMid%20meet%22");
     expect(entityNodeVisual("UNKNOWN_ENTITY").fill).toBe("#253245");
     expect(entityNodeVisual(GraphEntityType.Person).accent).toBe("#64c8ff");
@@ -67,9 +71,38 @@ describe("network marker presentation", () => {
 
   it("uses balanced circular badge sizes for focus and normal entities", () => {
     expect(nodeBadgeSize(0, true)).toBe(58);
-    expect(nodeBadgeSize(1, false)).toBe(52);
+    expect(nodeBadgeSize(1, false)).toBe(50);
     expect(nodeBadgeSize(2, false)).toBe(48);
     expect(nodeBadgeSize(3, false)).toBe(48);
+  });
+
+  it("keeps every node icon at one fixed ratio regardless of focus, selection, or semantic zoom", () => {
+    const normal = nodeBadgeSize(2, false);
+    const directNeighbor = nodeBadgeSize(1, false);
+    const focused = nodeBadgeSize(0, true);
+    expect(nodeIconSize(normal) / normal).toBe(NODE_ICON_RATIO);
+    expect(nodeIconSize(directNeighbor) / directNeighbor).toBe(NODE_ICON_RATIO);
+    expect(nodeIconSize(focused) / focused).toBe(NODE_ICON_RATIO);
+    expect(nodeIconSize(normal)).toBe(27.84);
+    expect(nodeIconSize(focused)).toBe(33.64);
+  });
+
+  it("compensates node, icon, label, border, and halo model units so badges stay fixed on screen", () => {
+    const normalBadge = 48;
+    const focusBadge = 58;
+    for (const zoom of [0.5, 0.75, 1, 1.25, 1.5, 2]) {
+      const normal = screenSpaceNodeMetrics({ zoom, badgeSize: normalBadge, isFocus: false, isSelected: false });
+      const focused = screenSpaceNodeMetrics({ zoom, badgeSize: focusBadge, isFocus: true, isSelected: true });
+      expect(normal.nodeSize * zoom).toBeCloseTo(48, 6);
+      expect(normal.iconSize * zoom).toBeCloseTo(27.84, 6);
+      expect(normal.labelFontSize * zoom).toBeCloseTo(12, 6);
+      expect(normal.borderWidth * zoom).toBeCloseTo(2, 6);
+      expect(focused.nodeSize * zoom).toBeCloseTo(58, 6);
+      expect(focused.iconSize * zoom).toBeCloseTo(33.64, 6);
+      expect(focused.labelFontSize * zoom).toBeCloseTo(12, 6);
+      expect(focused.borderWidth * zoom).toBeCloseTo(3, 6);
+      expect(focused.underlayPadding * zoom).toBeCloseTo(9, 6);
+    }
   });
 
   it("reruns a layout only for explicit arrangement changes, not viewport persistence", () => {
